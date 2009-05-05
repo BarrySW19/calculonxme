@@ -1,13 +1,9 @@
 package nl.zoidberg.calculon.notation;
 
-import java.util.Arrays;
-import java.util.List;
 
 import nl.zoidberg.calculon.engine.EngineUtils;
 import nl.zoidberg.calculon.model.Board;
 import nl.zoidberg.calculon.model.Piece;
-
-import org.apache.commons.lang.StringUtils;
 
 public class FENUtils {
 	private static final String FILES = "abcdefgh";
@@ -176,10 +172,10 @@ public class FENUtils {
 		
 		board.setPlayer("b".equals(fields[1]) ? Piece.BLACK : Piece.WHITE);
 		board.setCastlingOptions((short) 
-				((fields[2].contains("K") ? Board.CASTLE_WKS : 0) |
-				(fields[2].contains("Q") ? Board.CASTLE_WQS : 0) |
-				(fields[2].contains("k") ? Board.CASTLE_BKS : 0) |
-				(fields[2].contains("q") ? Board.CASTLE_BQS : 0)));
+				((fields[2].indexOf("K") >= 0 ? Board.CASTLE_WKS : 0) |
+				(fields[2].indexOf("Q") >= 0 ? Board.CASTLE_WQS : 0) |
+				(fields[2].indexOf("k") >= 0 ? Board.CASTLE_BKS : 0) |
+				(fields[2].indexOf("q") >= 0 ? Board.CASTLE_BQS : 0)));
 		
 		if(fields[3].length() == 2) {
 			board.setEnPassantSquare(FILES.indexOf(fields[3].charAt(0)), RANKS.indexOf(fields[3].charAt(1)));
@@ -196,61 +192,5 @@ public class FENUtils {
 		Board board = new Board();
 		loadPosition(fen, board);
 		return board;
-	}
-
-	public static String convertStyle12(String style12) {
-		return convertStyle12(Arrays.asList(StringUtils.split(style12)));
-	}
-
-	public static String convertStyle12(List<String> fields) {
-		StringBuffer fen = new StringBuffer();
-		for(int i = 0; i < 8; i++) {
-			int eCount = 0;
-			String line = fields.get(i + 1);
-			for(int j = 0; j < line.length(); j++) {
-				if(line.charAt(j) == '-') {
-					eCount++;
-				} else {
-					if(eCount > 0) {
-						fen.append(eCount);
-						eCount = 0;
-					}
-					fen.append(line.charAt(j));
-				}
-			}
-			if(eCount > 0) {
-				fen.append(eCount);
-			}
-			if(i < 7) {
-				fen.append("/");
-			}
-		}
-		
-		fen.append(" ").append(fields.get(9).toLowerCase()).append(" ");
-		StringBuffer buf = new StringBuffer();
-		if("1".equals(fields.get(11))) {
-			buf.append("K");
-		}
-		if("1".equals(fields.get(12))) {
-			buf.append("Q");
-		}
-		if("1".equals(fields.get(13))) {
-			buf.append("k");
-		}
-		if("1".equals(fields.get(14))) {
-			buf.append("q");
-		}
-		fen.append(buf.length() == 0 ? "-" : buf.toString()).append(" ");
-		
-		if("-1".equals(fields.get(10))) {
-			fen.append("- ");
-		} else {
-			fen.append(FILES.charAt(Integer.parseInt(fields.get(10))));
-			fen.append("B".equals(fields.get(9)) ? "3" : "6").append(" ");
-		}
-		fen.append(fields.get(15)).append(" ");
-		fen.append(fields.get(26));
-		
-		return fen.toString();
 	}
 }
