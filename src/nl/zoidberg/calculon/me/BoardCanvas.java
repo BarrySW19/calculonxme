@@ -1,15 +1,18 @@
 package nl.zoidberg.calculon.me;
 
 import java.io.IOException;
+import java.util.Enumeration;
+import java.util.Hashtable;
+import java.util.Vector;
 
 import javax.microedition.lcdui.Canvas;
 import javax.microedition.lcdui.Graphics;
 import javax.microedition.lcdui.Image;
 
+import nl.zoidberg.calculon.engine.MoveGenerator;
 import nl.zoidberg.calculon.engine.SearchNode;
 import nl.zoidberg.calculon.model.Board;
 import nl.zoidberg.calculon.model.Piece;
-import nl.zoidberg.calculon.notation.FENUtils;
 
 public class BoardCanvas extends Canvas {
 	private static final String RANKS = "12345678";
@@ -53,15 +56,36 @@ public class BoardCanvas extends Canvas {
 		}
 	}
 	
-	private Board currentBoard = new Board().initialise();
+	private Board currentBoard;
+	private Hashtable currentMoves;
 	private boolean flipped = false;
 	private int posX = 0, posY = 0;
 	private int fireX = -1, fireY = -1;
 	
 	public BoardCanvas() {
+		currentBoard = new Board().initialise();
+		fireBoardChanged();
 //		FENUtils.loadPosition("1rbq2r1/3pkpp1/2n1p2p/1N1n4/1p1P3N/3Q2P1/1PP2PBP/R3R1K1 b - - 1 16", currentBoard);
 	}
 	
+	private void fireBoardChanged() {
+		currentMoves = MoveGenerator.get().getPossibleMoves(currentBoard);
+		for(Enumeration e = currentMoves.keys(); e.hasMoreElements(); ) {
+			String key = (String) e.nextElement();
+			Vector v = (Vector) currentMoves.get(key);
+			for(int i = 0; i < v.size(); i++) {
+				String toMove = (String) v.elementAt(i);
+				if(toMove.indexOf('=') >= 0) {
+					String newToMove = toMove.substring(0, toMove.indexOf('='));
+					if( ! v.contains(newToMove)) {
+						v.addElement(newToMove);
+					}
+					v.removeElement(toMove);
+				}
+			}
+		}
+	}
+
 	protected void paint(Graphics g) {
 		for(int file = 0; file < 8; file++) {
 			for(int rank = 0; rank < 8; rank++) {
@@ -79,6 +103,9 @@ public class BoardCanvas extends Canvas {
 		
 		if(fireX != posX || fireY != posY) {
 			g.setColor(0, 0, 255);
+			if((fireX == -1 && isFromTarget()) || (fireX != -1 && isToTarget())) {
+				g.setColor(0, 192, 0);
+			}
 			g.drawRect(posX * 24, (7-posY)*24, 23, 23);
 			g.drawRect(posX*24 + 1, (7-posY)*24 + 1, 21, 21);
 		}
@@ -104,29 +131,65 @@ public class BoardCanvas extends Canvas {
 		
 		repaint();
 	}
-
-	private void doFireKey() {
+	
+	private String getMove() {
+		if(fireX == -1) {
+			return null;
+		}
 		int posRank = (flipped ? 7-posY : posY);
 		int posFile = (flipped ? 7-posX : posX);
-		
+		int fireRank = (flipped ? 7-fireY : fireY);
+		int fireFile = (flipped ? 7-fireX : fireX);
+		String square = String.valueOf(FILES.charAt(posFile)) + String.valueOf(RANKS.charAt(posRank));
+		String fireSq = String.valueOf(FILES.charAt(fireFile)) + String.valueOf(RANKS.charAt(fireRank));
+		return fireSq + square;
+	}
+	
+	private boolean isToTarget() {
 		if(fireX == -1) {
-			if(currentBoard.getPiece(posFile, posRank) != 0) {
-				fireX = posX;
-				fireY = posY;
-			}
-		} else if(fireX == posX && fireY == posY) {
+			return false;
+		}
+		int posRank = (flipped ? 7-posY : posY);
+		int posFile = (flipped ? 7-posX : posX);
+		int fireRank = (flipped ? 7-fireY : fireY);
+		int fireFile = (flipped ? 7-fireX : fireX);
+		String square = String.valueOf(FILES.charAt(posFile)) + String.valueOf(RANKS.charAt(posRank));
+		String fireSq = String.valueOf(FILES.charAt(fireFile)) + String.valueOf(RANKS.charAt(fireRank));
+		Vector v = (Vector) currentMoves.get(fireSq);
+		return v.contains(square);
+	}
+	
+	private boolean isFromTarget() {
+		int posRank = (flipped ? 7-posY : posY);
+		int posFile = (flipped ? 7-posX : posX);
+		String square = String.valueOf(FILES.charAt(posFile)) + String.valueOf(RANKS.charAt(posRank));
+
+		return currentMoves.get(square) != null;
+	}
+
+	private void doFireKey() {
+		if(fireX == posX && fireY == posY) {
 			fireX = -1;
 			fireY = -1;
-		} else {
-			int fireRank = (flipped ? 7-fireY : fireY);
-			int fireFile = (flipped ? 7-fireX : fireX);
-			String move = String.valueOf(FILES.charAt(fireFile)) + String.valueOf(RANKS.charAt(fireRank))
-					+ String.valueOf(FILES.charAt(posFile)) + String.valueOf(RANKS.charAt(posRank));
-			System.out.println(move);
-			currentBoard.applyMove(move);
+		} else if(isFromTarget()) {
+			fireX = posX;
+			fireY = posY;
+		} else if(isToTarget()) {
+			System.out.println(getMove());
+			currentBoard.applyMove(getMove());
+			currentMoves.clear();
 			fireX = -1;
 			fireY = -1;
+			repaint();
+			new Thread(new MoveCommand()).start();
+		}
+	}
+	
+	private class MoveCommand implements Runnable {
+		public void run() {
 			currentBoard.applyMove(new SearchNode(currentBoard).getPreferredMove());
+			fireBoardChanged();
+			repaint();
 		}
 	}
 }
