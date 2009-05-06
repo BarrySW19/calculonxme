@@ -21,7 +21,7 @@ public class StringUtils {
         Vector rv = new Vector();
         int idx;
         while((idx = s.indexOf(sep)) != -1) {
-            rv.addElement(s.substring(0, idx-1));
+            rv.addElement(s.substring(0, idx));
             s = s.length() > idx+1 ? s.substring(idx+1) : "";
         }
         if(s.length() > 0) {

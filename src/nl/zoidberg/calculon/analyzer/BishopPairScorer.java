@@ -9,17 +9,17 @@ import nl.zoidberg.calculon.model.Piece;
 public class BishopPairScorer implements PositionScorer {
 
 	public float scorePosition(Board board, Hashtable pieceMap) {
-		float score = 0;
+		int score = 0;
 		score += getScore(board, Piece.WHITE, pieceMap);
 		score -= getScore(board, Piece.BLACK, pieceMap);
-		return score;
+		return (((float)score)/1000f);
 	}
 
-	private float getScore(Board board, byte color, Hashtable pieceMap) {
+	private int getScore(Board board, byte color, Hashtable pieceMap) {
 		Vector bishops = (Vector) pieceMap.get(new Byte((byte)(Piece.BISHOP|color)));
 
 		if(bishops != null && bishops.size() >= 2) {
-			return pieceMap.get(new Byte((byte) (Piece.QUEEN|color))) != null ? 0.3f : 0.15f;
+			return pieceMap.get(new Byte((byte) (Piece.QUEEN|color))) != null ? 300 : 150;
 		}
 		
 		return 0;

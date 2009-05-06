@@ -7,17 +7,17 @@ import nl.zoidberg.calculon.model.Piece;
 
 public class RookScorer implements PositionScorer {
 
-	public static final float OPEN_FILE_SCORE = 0.15f;
+	public static final int OPEN_FILE_SCORE = 150;
 
 	public float scorePosition(Board board, Hashtable pieceMap) {
-		float score = 0;
+		int score = 0;
 		score += scoreRooks(board, Piece.WHITE);
 		score -= scoreRooks(board, Piece.BLACK);
-		return score;
+		return (((float) score) / 1000f);
 	}
 	
-	private float scoreRooks(Board board, byte color) {
-		float score = 0;
+	private int scoreRooks(Board board, byte color) {
+		int score = 0;
 		
 		for(int file = 0; file < 8; file++) {
 			for(int rank = 0; rank < 8; rank++) {

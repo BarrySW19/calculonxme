@@ -1,9 +1,14 @@
 package nl.zoidberg.calculon.me;
 
-import javax.microedition.midlet.*;
-import javax.microedition.lcdui.*;
-import nl.zoidberg.calculon.engine.SearchNode;
-import nl.zoidberg.calculon.model.Board;
+import java.util.Date;
+
+import javax.microedition.lcdui.Canvas;
+import javax.microedition.lcdui.Command;
+import javax.microedition.lcdui.CommandListener;
+import javax.microedition.lcdui.Display;
+import javax.microedition.lcdui.Displayable;
+import javax.microedition.lcdui.TextBox;
+import javax.microedition.midlet.MIDlet;
 
 public class CalculonME extends MIDlet implements CommandListener {
 
@@ -16,12 +21,19 @@ public class CalculonME extends MIDlet implements CommandListener {
     }
 
     public void startApp() {
-        TextBox t = new TextBox("Hello", new SearchNode(new Board().initialise()).getPreferredMove(), 256, 0);
+    	String text = new Date(System.currentTimeMillis()).toString() + "\n";
+        
+        String move = "";//new SearchNode(new Board().initialise()).getPreferredMove();
+        text = text + move + "\n";
+    	text = text + new Date(System.currentTimeMillis()).toString() + "\n";
+
+    	Canvas c = new BoardCanvas();
+    	TextBox t = new TextBox("Hello", text, 256, 0);
 
         t.addCommand(exitCommand);
         t.setCommandListener(this);
 
-        display.setCurrent(t);
+        display.setCurrent(c);
     }
 
     public void pauseApp() {
@@ -36,5 +48,4 @@ public class CalculonME extends MIDlet implements CommandListener {
             notifyDestroyed();
         } 
     }
-
 }
