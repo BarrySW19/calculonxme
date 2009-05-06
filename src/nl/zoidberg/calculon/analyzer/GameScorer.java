@@ -2,8 +2,8 @@ package nl.zoidberg.calculon.analyzer;
 
 import java.util.Enumeration;
 import java.util.Hashtable;
-
 import java.util.Vector;
+
 import nl.zoidberg.calculon.engine.CheckDetector;
 import nl.zoidberg.calculon.engine.MoveGenerator;
 import nl.zoidberg.calculon.model.Board;
@@ -15,12 +15,12 @@ public class GameScorer {
 	private static GameScorer getUnweightedScorer() {
 		GameScorer rv = new GameScorer();
 		rv.addScorer(new MaterialScorer(), 1.0f);
-//		rv.addScorer(new BishopPairScorer(), 1.0f);
-//		rv.addScorer(new BishopMobilityScorer(), 1.0f);
-//		rv.addScorer(new PawnStructureScorer(), 1.0f);
-//		rv.addScorer(new KnightScorer(), 1.0f);
-//		rv.addScorer(new RookScorer(), 1.0f);
-//		rv.addScorer(new KingSafetyScorer(), 1.0f);
+		rv.addScorer(new BishopPairScorer(), 1.0f);
+		rv.addScorer(new BishopMobilityScorer(), 1.0f);
+		rv.addScorer(new PawnStructureScorer(), 1.0f);
+		rv.addScorer(new KnightScorer(), 1.0f);
+		rv.addScorer(new RookScorer(), 1.0f);
+		rv.addScorer(new KingSafetyScorer(), 1.0f);
 		return rv;
 	}
 
