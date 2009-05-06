@@ -1,4 +1,4 @@
-package hello;
+package nl.zoidberg.calculon.me;
 
 import javax.microedition.midlet.*;
 import javax.microedition.lcdui.*;
