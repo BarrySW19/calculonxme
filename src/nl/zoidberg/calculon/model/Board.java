@@ -1,13 +1,11 @@
 package nl.zoidberg.calculon.model;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Enumeration;
+import java.util.Hashtable;
 
 import nl.zoidberg.calculon.engine.CheckDetector;
 import nl.zoidberg.calculon.engine.EngineUtils;
 import nl.zoidberg.calculon.engine.MoveGenerator;
-import nl.zoidberg.calculon.engine.SearchNode;
 import nl.zoidberg.calculon.notation.FENUtils;
 import nl.zoidberg.calculon.notation.PGNUtils;
 
@@ -48,24 +46,29 @@ public class Board {
     private byte[] squares = new byte[64];
     private short flags;
     private short moveCount, halfMoveCount;
-    private Map<String, Short> history = new HashMap<String, Short>();
+    private Hashtable history = new Hashtable();
 
     public Board() { }
     
-    public Board(byte[] squares, short flags, Map<String, Short> history) {
+    public Board(byte[] squares, short flags, Hashtable history) {
     	this.squares = squares;
     	this.flags = flags;
     	this.history.clear();
-    	this.history.putAll(history);
+    	for(Enumeration e = history.keys(); e.hasMoreElements(); ) {
+    		String s = (String) e.nextElement();
+    		this.history.put(s, history.get(s));
+    	}
     }
     
     public void clear() {
     	history.clear();
-        Arrays.fill(squares, (byte) 0);
+    	for(int i = 0; i < squares.length; i++) {
+    		squares[i] = 0;
+    	}
         flags = 0;
     }
     
-    public Map<String, Short> getHistory() {
+    public Hashtable getHistory() {
     	return history;
     }
     
@@ -78,7 +81,7 @@ public class Board {
     }
     
     public String getResult() {
-    	Map<String, SearchNode> map = MoveGenerator.get().generateMoves(this);
+    	Hashtable map = MoveGenerator.get().generateMoves(this);
     	if(map.size() > 0) {
     		return "*";
     	}
@@ -215,7 +218,10 @@ public class Board {
         Board board = new Board();
         System.arraycopy(squares, 0, board.squares, 0, squares.length);
         board.flags = flags;
-        board.history.putAll(history);
+    	for(Enumeration e = history.keys(); e.hasMoreElements(); ) {
+    		String s = (String) e.nextElement();
+    		board.history.put(s, history.get(s));
+    	}
         return board;
     }
     
@@ -264,7 +270,7 @@ public class Board {
     }
     
     public Board applyPgnMove(String pgn) {
-    	return applyMove(PGNUtils.toPgnMoveMap(this).get(pgn));
+    	return applyMove((String) PGNUtils.toPgnMoveMap(this).get(pgn));
     }
     
     /**
@@ -279,7 +285,7 @@ public class Board {
     	halfMoveCount++;
     	
     	String myCacheId = getCacheId();
-    	Short repeats = history.get(myCacheId);
+    	Short repeats = (Short) history.get(myCacheId);
     	if(repeats == null) {
     		repeats = new Short((short) 1);
     	} else {
@@ -391,7 +397,7 @@ public class Board {
     }
     
     public int getRepeatedCount() {
-    	Short s = history.get(getCacheId());
+    	Short s = (Short) history.get(getCacheId());
     	return s == null ? 1 : s.shortValue() + 1;
     }
 
@@ -490,7 +496,8 @@ public class Board {
 	
 	public String getStateInfo() {
 		StringBuffer stateInfo = new StringBuffer(cacheToString(getCacheId()));
-		for(String s: history.keySet()) {
+		for(Enumeration e = history.keys(); e.hasMoreElements(); ) {
+			String s = (String) e.nextElement();
 			stateInfo.append(cacheToString(s));
 			stateInfo.append(history.get(s));
 		}

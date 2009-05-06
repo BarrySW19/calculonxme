@@ -72,11 +72,6 @@ public class Game {
 
 	public static void run() throws Exception {
 		Game game = new Game();
-//		FENUtils.loadPosition("1rbq2r1/3pkpp1/2n1p2p/1N1n4/1p1P3N/3Q2P1/1PP2PBP/R3R1K1 b - - 1 16", game.getBoard());
-//		FENUtils.loadPosition("r1bqk2r/pppp1ppp/2n1p3/b7/2nPQ3/P1N2N2/1PPBPPPP/R3KB1R b KQkq - 4 9", game.getBoard());
-//		FENUtils.loadPosition(
-//				FENUtils.convertStyle12("<12> -------- -------- -k------ p------- -ppr---- ----p--- ----K--- ------q- B -1 0 0 0 0 1 176 DREZIO CalculonX 2 20 20 0 18 1797 2082 73 K/f3-e2 (0:01) Ke2 0 0 0"),
-//				game.getBoard());
 		
 		for (;;) {
 			SearchNode node = new SearchNode(game.getBoard());
@@ -91,15 +86,8 @@ public class Game {
 			if (game.getBoard().getHalfMoveCount() >= 100) {
 				break;
 			}
-//			String pgnMove = PGNUtils.translateMove(game.getBoard(), bestMove);
-			
-			SearchNode.mSearch = 0;
-			SearchNode.mHit = 0;
 			
 			game.getBoard().applyMove(bestMove);
-//			for(String s: TextUtils.getMiniTextBoard(game.getBoard())) {
-//				log.debug(s);
-//			}
 		}
 	}
 }

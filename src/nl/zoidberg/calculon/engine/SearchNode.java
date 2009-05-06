@@ -1,10 +1,10 @@
 package nl.zoidberg.calculon.engine;
 
 import java.util.Enumeration;
-import java.util.Vector;
 import java.util.Hashtable;
-
 import java.util.Random;
+import java.util.Vector;
+
 import nl.zoidberg.calculon.analyzer.GameScorer;
 import nl.zoidberg.calculon.model.Board;
 
@@ -21,22 +21,21 @@ public class SearchNode {
 	
 	private float alphaBetaMax(float alpha, float beta, int depthLeft, GameScorer scorer) {
 		if(depthLeft == 0 || getChildNodes().size() == 0) {
-			String id = board.getCacheId();
 			float rv = scorer.score(board);
 			return rv;
 		}
 
-                for(Enumeration e = getChildNodes().keys(); e.hasMoreElements(); ) {
-                    String key = (String) e.nextElement();
-                    SearchNode childNode = (SearchNode) getChildNodes().get(key);
-                    float score = childNode.alphaBetaMin(alpha, beta, depthLeft - 1, scorer);
-                    childNode.reset();
-                    if(score >= beta) {
-                            return beta;
-                    }
-                    if(score > alpha) {
-                            alpha = score;
-                    }
+        for(Enumeration e = getChildNodes().keys(); e.hasMoreElements(); ) {
+            String key = (String) e.nextElement();
+            SearchNode childNode = (SearchNode) getChildNodes().get(key);
+            float score = childNode.alphaBetaMin(alpha, beta, depthLeft - 1, scorer);
+            childNode.reset();
+            if(score >= beta) {
+                    return beta;
+            }
+            if(score > alpha) {
+                    alpha = score;
+            }
 		}
 		
 		return alpha;
@@ -44,7 +43,6 @@ public class SearchNode {
 
 	private float alphaBetaMin(float alpha, float beta, int depthLeft, GameScorer scorer) {
 		if(depthLeft == 0 || getChildNodes().size() == 0) {
-			String id = board.getCacheId();
 			float rv = scorer.score(board);
 			return rv * -1;
 		}
