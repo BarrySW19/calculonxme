@@ -1,15 +1,12 @@
 package nl.zoidberg.calculon.notation;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
+import java.util.Enumeration;
+import java.util.Hashtable;
+import java.util.Vector;
 
 import nl.zoidberg.calculon.engine.CheckDetector;
 import nl.zoidberg.calculon.engine.EngineUtils;
 import nl.zoidberg.calculon.engine.MoveGenerator;
-import nl.zoidberg.calculon.engine.SearchNode;
 import nl.zoidberg.calculon.model.Board;
 import nl.zoidberg.calculon.model.Piece;
 
@@ -18,18 +15,22 @@ public class PGNUtils {
 	private PGNUtils() {
 	}
 
-	public static Map<String, String> toPgnMoveMap(Board board) {
-		Map<String, SearchNode> allMoves = MoveGenerator.get().generateMoves(board);
-		Map<String, String> rv = new HashMap<String, String>();
-		for(String intMove: allMoves.keySet()) {
+	public static Hashtable toPgnMoveMap(Board board) {
+		Hashtable allMoves = MoveGenerator.get().generateMoves(board);
+		Hashtable rv = new Hashtable();
+		for(Enumeration e = allMoves.keys(); e.hasMoreElements(); ) {
+			String intMove = (String) e.nextElement();
 			rv.put(translateMove(board, intMove), intMove);
 		}
-		for(String pgnMove: new HashSet<String>(rv.keySet())) {
+		Hashtable duplicate = new Hashtable();
+		for(Enumeration e = rv.keys(); e.hasMoreElements(); ) {
+			String pgnMove = (String) e.nextElement();
+			duplicate.put(pgnMove, rv.get(pgnMove));
 			if(pgnMove.endsWith("+")) {
-				rv.put(pgnMove.substring(0, pgnMove.length()-1), rv.get(pgnMove));
+				duplicate.put(pgnMove.substring(0, pgnMove.length()-1), rv.get(pgnMove));
 			}
 		}
-		return rv;
+		return duplicate;
 	}
 
 	/**
@@ -91,10 +92,11 @@ public class PGNUtils {
 
 		if (testClash) {
 			String fromSquare = simpleAlgebraic.substring(0, 2);
-			Map<String, SearchNode> m = MoveGenerator.get()
+			Hashtable m = MoveGenerator.get()
 					.generateMoves(board);
-			List<String> clashingPieces = new ArrayList<String>();
-			for (String key : m.keySet()) {
+			Vector clashingPieces = new Vector();
+			for(Enumeration e = m.keys(); e.hasMoreElements(); ) {
+				String key = (String) e.nextElement();
 				if (key.startsWith("O-")) {
 					continue;
 				}
@@ -107,13 +109,14 @@ public class PGNUtils {
 						|| board.getPiece(pieceSquare) != movePiece) {
 					continue;
 				}
-				clashingPieces.add(key);
+				clashingPieces.addElement(key);
 			}
 
 			if (clashingPieces.size() != 0) {
 				boolean sameFile = false;
 				boolean sameRank = false;
-				for (String clash : clashingPieces) {
+				for(Enumeration e = clashingPieces.elements(); e.hasMoreElements(); ) {
+					String clash = (String) e.nextElement();
 					if (clash.charAt(0) == simpleAlgebraic.charAt(0)) {
 						sameFile = true;
 					}
