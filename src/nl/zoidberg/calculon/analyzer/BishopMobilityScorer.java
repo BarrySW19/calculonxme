@@ -1,8 +1,8 @@
 package nl.zoidberg.calculon.analyzer;
 
 import java.util.Enumeration;
-import java.util.Vector;
 import java.util.Hashtable;
+import java.util.Vector;
 
 import nl.zoidberg.calculon.engine.BishopMoveGenerator;
 import nl.zoidberg.calculon.model.Board;
@@ -10,11 +10,11 @@ import nl.zoidberg.calculon.model.Piece;
 
 public class BishopMobilityScorer implements PositionScorer {
 
-	public float scorePosition(Board board, Hashtable pieceMap) {
+	public int scorePosition(Board board, Hashtable pieceMap) {
 		int score = 0;
 		score += getScore(board, Piece.WHITE, pieceMap);
 		score -= getScore(board, Piece.BLACK, pieceMap);
-		return (((float)score)/1000f);
+		return score;
 	}
 
 	private int getScore(Board board, byte color, Hashtable pieceMap) {

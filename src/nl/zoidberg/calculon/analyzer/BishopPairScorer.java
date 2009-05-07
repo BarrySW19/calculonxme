@@ -8,11 +8,11 @@ import nl.zoidberg.calculon.model.Piece;
 
 public class BishopPairScorer implements PositionScorer {
 
-	public float scorePosition(Board board, Hashtable pieceMap) {
+	public int scorePosition(Board board, Hashtable pieceMap) {
 		int score = 0;
 		score += getScore(board, Piece.WHITE, pieceMap);
 		score -= getScore(board, Piece.BLACK, pieceMap);
-		return (((float)score)/1000f);
+		return score;
 	}
 
 	private int getScore(Board board, byte color, Hashtable pieceMap) {
