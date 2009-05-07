@@ -10,7 +10,7 @@ import nl.zoidberg.calculon.model.Board;
 
 public class SearchNode {
 	private static final Random random = new Random();
-	private static final int DEPTH = 2;
+	private static final int DEPTH = 1;
 
 	private Board board;
 	private Hashtable childNodes;

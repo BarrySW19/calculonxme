@@ -12,6 +12,7 @@ import javax.microedition.lcdui.Image;
 import nl.zoidberg.calculon.engine.MoveGenerator;
 import nl.zoidberg.calculon.engine.SearchNode;
 import nl.zoidberg.calculon.model.Board;
+import nl.zoidberg.calculon.model.Game;
 import nl.zoidberg.calculon.model.Piece;
 import nl.zoidberg.calculon.notation.FENUtils;
 
@@ -73,7 +74,7 @@ public class BoardCanvas extends Canvas {
 	public BoardCanvas() {
 		currentBoard = new Board().initialise();
 //		FENUtils.loadPosition("1rbq2r1/3pkpp1/2n1p2p/1N1n4/1p1P3N/3Q2P1/1PP2PBP/R3R1K1 b - - 1 16", currentBoard);
-		FENUtils.loadPosition("7k/PPPPP3/8/8/8/8/8/7K w - - 1 1", currentBoard);
+		FENUtils.loadPosition("7k/PP6/8/8/8/1r4R1/r5PP/7K w - - 1 1", currentBoard);
 		fireBoardChanged();
 	}
 	
@@ -100,11 +101,6 @@ public class BoardCanvas extends Canvas {
 	}
 
 	protected void paint(Graphics g) {
-		if(currentOverlay != null) {
-			currentOverlay.paint(g);
-			return;
-		}
-		
 		g.setColor(0,0,0);
 		g.fillRect(0, 0, this.getWidth(), this.getHeight());
 		ImageUtils.drawBorder(g, 0, 0, 8*squareSize+10, 8*squareSize+10);
@@ -132,11 +128,13 @@ public class BoardCanvas extends Canvas {
 			g.drawRect(posX * squareSize, (7-posY)*squareSize, 23, 23);
 			g.drawRect(posX*squareSize + 1, (7-posY)*squareSize + 1, 21, 21);
 		}
+
+		if(currentOverlay != null) {
+			currentOverlay.paint(g);
+		}
 	}
 
 	protected void keyPressed(int keyCode) {
-		System.out.println("Key: " + keyCode + " -> " + getGameAction(keyCode));
-		
 		if(currentOverlay != null) {
 			currentOverlay.keyPressed(keyCode);
 			return;
@@ -144,7 +142,22 @@ public class BoardCanvas extends Canvas {
 		
 		if(keyCode == '1') {
 			flipped = ! flipped;
+			repaint();
+			return;
 		}
+		
+		if(keyCode == '2') {
+			currentMoves.clear();
+			new Thread(new MoveCommand()).start();
+			repaint();
+			return;
+		}
+		
+		if(keyCode == '3') {
+			reset();
+			repaint();
+		}
+		
 		switch(getGameAction(keyCode)) {
 		case RIGHT:
 			posX = (posX < 7 ? posX+1 : posX);
@@ -213,30 +226,42 @@ public class BoardCanvas extends Canvas {
 					this, (byte) (Piece.MASK_COLOR & currentBoard.getPiece(fireFile, fireRank)), move);
 			repaint();
 		} else {
-			currentBoard.applyMove(move);
-			currentMoves.clear();
-			fireX = -1;
-			fireY = -1;
-			repaint();
-			new Thread(new MoveCommand()).start();
+			applyMove(move, true);
 		}
+	}
+	
+	private void applyMove(String move, boolean respond) {
+		currentMoves.clear();
+		currentBoard.applyMove(move);
+		fireX = -1;
+		fireY = -1;
+		if( ! Game.RES_NO_RESULT.equals(currentBoard.getResult())) {
+			currentOverlay = new ResultDialog(this, currentBoard.getResult());
+			repaint();
+			return;
+		}
+		if(respond) {
+			new Thread(new MoveCommand()).start();
+		} else {
+			fireBoardChanged();
+		}
+		repaint();
 	}
 
 	private class MoveCommand implements Runnable {
 		public void run() {
-			currentBoard.applyMove(new SearchNode(currentBoard).getPreferredMove());
-			fireBoardChanged();
-			repaint();
+			applyMove(new SearchNode(currentBoard).getPreferredMove(), false);
 		}
 	}
 
 	public void firePromote(String move) {
 		currentOverlay = null;
-		currentBoard.applyMove(move);
-		currentMoves.clear();
-		fireX = -1;
-		fireY = -1;
-		repaint();
-		new Thread(new MoveCommand()).start();
+		applyMove(move, true);
+	}
+
+	public void reset() {
+		currentOverlay = null;
+		currentBoard.initialise();
+		fireBoardChanged();
 	}
 }
