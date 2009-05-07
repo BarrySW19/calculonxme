@@ -14,7 +14,6 @@ import nl.zoidberg.calculon.engine.SearchNode;
 import nl.zoidberg.calculon.model.Board;
 import nl.zoidberg.calculon.model.Game;
 import nl.zoidberg.calculon.model.Piece;
-import nl.zoidberg.calculon.notation.FENUtils;
 
 public class BoardCanvas extends Canvas {
 	private static final String RANKS = "12345678";
@@ -66,6 +65,7 @@ public class BoardCanvas extends Canvas {
 	private int fireX = -1, fireY = -1;
 	private DialogOverlay currentOverlay = null;
 	private int squareSize = 24;
+	private String lastMove = null;
 	
 	public static Image[][] getImages() {
 		return images;
@@ -74,7 +74,7 @@ public class BoardCanvas extends Canvas {
 	public BoardCanvas() {
 		currentBoard = new Board().initialise();
 //		FENUtils.loadPosition("1rbq2r1/3pkpp1/2n1p2p/1N1n4/1p1P3N/3Q2P1/1PP2PBP/R3R1K1 b - - 1 16", currentBoard);
-		FENUtils.loadPosition("7k/PP6/8/8/8/1r4R1/r5PP/7K w - - 1 1", currentBoard);
+//		FENUtils.loadPosition("7k/PP6/8/8/8/1r4R1/r5PP/7K w - - 1 1", currentBoard);
 		fireBoardChanged();
 	}
 	
@@ -114,23 +114,68 @@ public class BoardCanvas extends Canvas {
 			}
 		}
 		
+		if(lastMove != null) {
+			g.setColor(192, 0, 192);
+			if(flipped) {
+				g.drawRect(squareSize * (7 - FILES.indexOf(lastMove.charAt(0))),
+						squareSize * RANKS.indexOf(lastMove.charAt(1)), squareSize-1, squareSize-1);
+				g.drawRect(squareSize * (7 - FILES.indexOf(lastMove.charAt(2))),
+						squareSize * RANKS.indexOf(lastMove.charAt(3)), squareSize-1, squareSize-1);
+			} else {
+				g.drawRect(squareSize * FILES.indexOf(lastMove.charAt(0)),
+						squareSize * (7 - RANKS.indexOf(lastMove.charAt(1))), squareSize-1, squareSize-1);
+				g.drawRect(squareSize * FILES.indexOf(lastMove.charAt(2)),
+						squareSize * (7 - RANKS.indexOf(lastMove.charAt(3))), squareSize-1, squareSize-1);
+			}
+		}
+		
 		if(fireX != -1) {
-			g.setColor(255, 0, 0);
-			g.drawRect(fireX * squareSize, (7-fireY)*squareSize, 23, 23);
-			g.drawRect(fireX*squareSize + 1, (7-fireY)*squareSize + 1, 21, 21);
+			g.setColor(192, 0, 192);
+			drawTarget(g, fireX, 7-fireY, true);
 		}
 		
 		if(fireX != posX || fireY != posY) {
 			g.setColor(0, 0, 255);
+			boolean isClickable = false;
 			if((fireX == -1 && isFromTarget()) || (fireX != -1 && isToTarget())) {
-				g.setColor(0, 192, 0);
+				isClickable = true;
 			}
-			g.drawRect(posX * squareSize, (7-posY)*squareSize, 23, 23);
-			g.drawRect(posX*squareSize + 1, (7-posY)*squareSize + 1, 21, 21);
+			drawTarget(g, posX, 7-posY, isClickable);
 		}
 
 		if(currentOverlay != null) {
 			currentOverlay.paint(g);
+		}
+	}
+
+	private void drawTarget(Graphics g, int x, int y, boolean thick) {
+		x *= squareSize;
+		y *= squareSize;
+		int sz = squareSize/4;
+		int farX = x+squareSize-1;
+		int farY = y+squareSize-1;
+		
+		g.drawLine(x, y, x+sz-1, y);
+		g.drawLine(x, y, x, y+sz-1);
+		
+		g.drawLine(farX, y, farX-sz+1, y);
+		g.drawLine(farX, y, farX, y+sz-1);
+
+		g.drawLine(x, farY, x+sz-1, farY);
+		g.drawLine(x, farY, x, farY-sz+1);
+
+		g.drawLine(farX, farY, farX-sz+1, farY);
+		g.drawLine(farX, farY, farX, farY-sz+1);
+		
+		if(thick) {
+			g.drawLine(x, y+1, x+sz-1, y+1);
+			g.drawLine(x+1, y, x+1, y+sz-1);
+			g.drawLine(farX, y+1, farX-sz+1, y+1);
+			g.drawLine(farX-1, y, farX-1, y+sz-1);
+			g.drawLine(x, farY-1, x+sz-1, farY-1);
+			g.drawLine(x+1, farY, x+1, farY-sz+1);
+			g.drawLine(farX, farY-1, farX-sz+1, farY-1);
+			g.drawLine(farX-1, farY, farX-1, farY-sz+1);
 		}
 	}
 
@@ -231,6 +276,17 @@ public class BoardCanvas extends Canvas {
 	}
 	
 	private void applyMove(String move, boolean respond) {
+		lastMove = move;
+		if(lastMove.length() > 4) {
+			lastMove = lastMove.substring(0, 4);
+		}
+		if("O-O".equals(lastMove)) {
+			lastMove = currentBoard.getPlayer() == Piece.WHITE ? "E1G1" : "E8G8";
+		}
+		if("O-O-O".equals(lastMove)) {
+			lastMove = currentBoard.getPlayer() == Piece.BLACK ? "E1D1" : "E8D8";
+		}
+		
 		currentMoves.clear();
 		currentBoard.applyMove(move);
 		fireX = -1;
@@ -261,6 +317,7 @@ public class BoardCanvas extends Canvas {
 
 	public void reset() {
 		currentOverlay = null;
+		lastMove = null;
 		currentBoard.initialise();
 		fireBoardChanged();
 	}
