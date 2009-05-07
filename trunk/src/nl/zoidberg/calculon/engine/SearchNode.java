@@ -15,23 +15,19 @@ public class SearchNode {
 	private Board board;
 	private Hashtable childNodes;
 
-	public float getAlphaBetaScore(int depth, GameScorer scorer) {
-		return alphaBetaMax(Float.NEGATIVE_INFINITY, Float.POSITIVE_INFINITY,
-				depth, scorer);
+	public int getAlphaBetaScore(int depth, GameScorer scorer) {
+		return alphaBetaMax(Integer.MIN_VALUE, Integer.MAX_VALUE, depth, scorer);
 	}
 
-	private float alphaBetaMax(float alpha, float beta, int depthLeft,
-			GameScorer scorer) {
+	private int alphaBetaMax(int alpha, int beta, int depthLeft, GameScorer scorer) {
 		if (depthLeft == 0 || getChildNodes().size() == 0) {
-			float rv = scorer.score(board);
-			return rv;
+			return scorer.score(board);
 		}
 
 		for (Enumeration e = getChildNodes().keys(); e.hasMoreElements();) {
 			String key = (String) e.nextElement();
 			SearchNode childNode = (SearchNode) getChildNodes().get(key);
-			float score = childNode.alphaBetaMin(alpha, beta, depthLeft - 1,
-					scorer);
+			int score = childNode.alphaBetaMin(alpha, beta, depthLeft - 1, scorer);
 			childNode.reset();
 			if (score >= beta) {
 				return beta;
@@ -44,18 +40,15 @@ public class SearchNode {
 		return alpha;
 	}
 
-	private float alphaBetaMin(float alpha, float beta, int depthLeft,
-			GameScorer scorer) {
+	private int alphaBetaMin(int alpha, int beta, int depthLeft, GameScorer scorer) {
 		if (depthLeft == 0 || getChildNodes().size() == 0) {
-			float rv = scorer.score(board);
-			return rv * -1;
+			return -scorer.score(board);
 		}
 
 		for (Enumeration e = getChildNodes().keys(); e.hasMoreElements();) {
 			String key = (String) e.nextElement();
 			SearchNode childNode = (SearchNode) getChildNodes().get(key);
-			float score = childNode.alphaBetaMax(alpha, beta, depthLeft - 1,
-					scorer);
+			int score = childNode.alphaBetaMax(alpha, beta, depthLeft - 1, scorer);
 			childNode.reset();
 			if (score <= alpha) {
 				return alpha;

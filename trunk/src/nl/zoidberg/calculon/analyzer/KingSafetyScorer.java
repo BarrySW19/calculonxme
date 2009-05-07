@@ -7,11 +7,11 @@ import nl.zoidberg.calculon.model.Piece;
 
 public class KingSafetyScorer implements PositionScorer {
 
-	public float scorePosition(Board board, Hashtable pieceMap) {
+	public int scorePosition(Board board, Hashtable pieceMap) {
 		int score = 0;
 		score += scoreSafety(board, Piece.WHITE, pieceMap);
 		score -= scoreSafety(board, Piece.BLACK, pieceMap);
-		return (((float)score)/1000f);
+		return score;
 	}
 
 	private int scoreSafety(Board board, byte color, Hashtable pieceMap) {

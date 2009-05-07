@@ -13,7 +13,7 @@ public class PawnStructureScorer implements PositionScorer {
 
 	private static int[] S_ADVANCE = { 20, 100, 200, 400, };
 
-	public float scorePosition(Board board, Hashtable pieceMap) {
+	public int scorePosition(Board board, Hashtable pieceMap) {
 
 		byte[] whitePawns = new byte[8], blackPawns = new byte[8];
 		populate(board, whitePawns, Piece.WHITE);
@@ -32,7 +32,7 @@ public class PawnStructureScorer implements PositionScorer {
 		score += getAdvanceScore(board, Piece.WHITE);
 		score -= getAdvanceScore(board, Piece.BLACK);
 
-		return (((float) score) / 1000f);
+		return score;
 	}
 
 	private int getAdvanceScore(Board board, byte color) {

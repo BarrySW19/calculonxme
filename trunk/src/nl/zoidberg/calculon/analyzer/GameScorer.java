@@ -42,16 +42,15 @@ public class GameScorer {
 	 * @param board
 	 * @return
 	 */
-	public float score(Board board) {
+	public int score(Board board) {
 		if (board.getHalfMoveCount() >= 100) {
 			return 0; // Draw by 50 move rule
 		}
 
 		if (!MoveGenerator.get().isMovePossible(board)) {
 			if (CheckDetector.alreadyInCheck(board)) {
-				// return board.getPlayer() == Piece.WHITE ? -100 : 100; //
 				// Checkmate
-				return -100;
+				return -100000;
 			} else {
 				return 0; // Stalemate
 			}
@@ -61,7 +60,7 @@ public class GameScorer {
 			return 0;
 		}
 
-		float score = 0;
+		int score = 0;
 		Hashtable pieceMap = generatePieceMap(board);
 		for (Enumeration e = scorers.keys(); e.hasMoreElements();) {
 			PositionScorer scorer = (PositionScorer) e.nextElement();

@@ -15,11 +15,11 @@ public class KnightScorer implements PositionScorer {
 	static final int[] targetScores = new int[] { -500, -450, -400, -200, -200,
 			0, 0, 100, 150 };
 
-	public float scorePosition(Board board, Hashtable pieceMap) {
+	public int scorePosition(Board board, Hashtable pieceMap) {
 		int score = 0;
 		score += scoreKnights(board, Piece.WHITE, pieceMap);
 		score -= scoreKnights(board, Piece.BLACK, pieceMap);
-		return (((float) score) / 1000f);
+		return score;
 	}
 
 	private int scoreKnights(Board board, byte color, Hashtable pieceMap) {

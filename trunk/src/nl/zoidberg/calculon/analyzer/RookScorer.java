@@ -9,11 +9,11 @@ public class RookScorer implements PositionScorer {
 
 	public static final int OPEN_FILE_SCORE = 150;
 
-	public float scorePosition(Board board, Hashtable pieceMap) {
+	public int scorePosition(Board board, Hashtable pieceMap) {
 		int score = 0;
 		score += scoreRooks(board, Piece.WHITE);
 		score -= scoreRooks(board, Piece.BLACK);
-		return (((float) score) / 1000f);
+		return score;
 	}
 	
 	private int scoreRooks(Board board, byte color) {

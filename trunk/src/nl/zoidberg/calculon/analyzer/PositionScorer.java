@@ -6,5 +6,5 @@ import nl.zoidberg.calculon.model.Board;
 
 public interface PositionScorer {
 	
-	public float scorePosition(Board board, Hashtable pieceMap);
+	public int scorePosition(Board board, Hashtable pieceMap);
 }
