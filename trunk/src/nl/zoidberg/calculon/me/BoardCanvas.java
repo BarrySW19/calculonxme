@@ -13,11 +13,13 @@ import nl.zoidberg.calculon.engine.MoveGenerator;
 import nl.zoidberg.calculon.engine.SearchNode;
 import nl.zoidberg.calculon.model.Board;
 import nl.zoidberg.calculon.model.Piece;
+import nl.zoidberg.calculon.notation.FENUtils;
 
 public class BoardCanvas extends Canvas {
 	private static final String RANKS = "12345678";
 	private static final String FILES = "ABCDEFGH";
 	private static Image[][] images = new Image[2][16];
+
 	static {
 		try {
 			images[0][Piece.EMPTY] = Image.createImage(BoardCanvas.class.getResourceAsStream("/img/24px-Chess_l44.png"));
@@ -61,13 +63,24 @@ public class BoardCanvas extends Canvas {
 	private boolean flipped = false;
 	private int posX = 0, posY = 0;
 	private int fireX = -1, fireY = -1;
+	private DialogOverlay currentOverlay = null;
+	private int squareSize = 24;
 	
+	public static Image[][] getImages() {
+		return images;
+	}
+
 	public BoardCanvas() {
 		currentBoard = new Board().initialise();
-		fireBoardChanged();
 //		FENUtils.loadPosition("1rbq2r1/3pkpp1/2n1p2p/1N1n4/1p1P3N/3Q2P1/1PP2PBP/R3R1K1 b - - 1 16", currentBoard);
+		FENUtils.loadPosition("7k/PPPPP3/8/8/8/8/8/7K w - - 1 1", currentBoard);
+		fireBoardChanged();
 	}
 	
+	public int getSquareSize() {
+		return squareSize;
+	}
+
 	private void fireBoardChanged() {
 		currentMoves = MoveGenerator.get().getPossibleMoves(currentBoard);
 		for(Enumeration e = currentMoves.keys(); e.hasMoreElements(); ) {
@@ -87,18 +100,28 @@ public class BoardCanvas extends Canvas {
 	}
 
 	protected void paint(Graphics g) {
+		if(currentOverlay != null) {
+			currentOverlay.paint(g);
+			return;
+		}
+		
+		g.setColor(0,0,0);
+		g.fillRect(0, 0, this.getWidth(), this.getHeight());
+		ImageUtils.drawBorder(g, 0, 0, 8*squareSize+10, 8*squareSize+10);
+		g.translate(5, 5);
+		
 		for(int file = 0; file < 8; file++) {
 			for(int rank = 0; rank < 8; rank++) {
 				boolean isWhite = (file+rank)%2 == 1;
 				Image image = images[isWhite?0:1][currentBoard.getPiece(file, rank)];
-				g.drawImage(image, (flipped ? 7-file:file)*24, (flipped ? rank : 7-rank)*24, Graphics.TOP|Graphics.LEFT);
+				g.drawImage(image, (flipped ? 7-file:file)*squareSize, (flipped ? rank : 7-rank)*squareSize, Graphics.TOP|Graphics.LEFT);
 			}
 		}
 		
 		if(fireX != -1) {
 			g.setColor(255, 0, 0);
-			g.drawRect(fireX * 24, (7-fireY)*24, 23, 23);
-			g.drawRect(fireX*24 + 1, (7-fireY)*24 + 1, 21, 21);
+			g.drawRect(fireX * squareSize, (7-fireY)*squareSize, 23, 23);
+			g.drawRect(fireX*squareSize + 1, (7-fireY)*squareSize + 1, 21, 21);
 		}
 		
 		if(fireX != posX || fireY != posY) {
@@ -106,12 +129,22 @@ public class BoardCanvas extends Canvas {
 			if((fireX == -1 && isFromTarget()) || (fireX != -1 && isToTarget())) {
 				g.setColor(0, 192, 0);
 			}
-			g.drawRect(posX * 24, (7-posY)*24, 23, 23);
-			g.drawRect(posX*24 + 1, (7-posY)*24 + 1, 21, 21);
+			g.drawRect(posX * squareSize, (7-posY)*squareSize, 23, 23);
+			g.drawRect(posX*squareSize + 1, (7-posY)*squareSize + 1, 21, 21);
 		}
 	}
 
 	protected void keyPressed(int keyCode) {
+		System.out.println("Key: " + keyCode + " -> " + getGameAction(keyCode));
+		
+		if(currentOverlay != null) {
+			currentOverlay.keyPressed(keyCode);
+			return;
+		}
+		
+		if(keyCode == '1') {
+			flipped = ! flipped;
+		}
 		switch(getGameAction(keyCode)) {
 		case RIGHT:
 			posX = (posX < 7 ? posX+1 : posX);
@@ -130,19 +163,6 @@ public class BoardCanvas extends Canvas {
 		}
 		
 		repaint();
-	}
-	
-	private String getMove() {
-		if(fireX == -1) {
-			return null;
-		}
-		int posRank = (flipped ? 7-posY : posY);
-		int posFile = (flipped ? 7-posX : posX);
-		int fireRank = (flipped ? 7-fireY : fireY);
-		int fireFile = (flipped ? 7-fireX : fireX);
-		String square = String.valueOf(FILES.charAt(posFile)) + String.valueOf(RANKS.charAt(posRank));
-		String fireSq = String.valueOf(FILES.charAt(fireFile)) + String.valueOf(RANKS.charAt(fireRank));
-		return fireSq + square;
 	}
 	
 	private boolean isToTarget() {
@@ -175,8 +195,25 @@ public class BoardCanvas extends Canvas {
 			fireX = posX;
 			fireY = posY;
 		} else if(isToTarget()) {
-			System.out.println(getMove());
-			currentBoard.applyMove(getMove());
+			playCurrentMove();
+		}
+	}
+	
+	private void playCurrentMove() {
+		int posRank = (flipped ? 7-posY : posY);
+		int posFile = (flipped ? 7-posX : posX);
+		int fireRank = (flipped ? 7-fireY : fireY);
+		int fireFile = (flipped ? 7-fireX : fireX);
+		String square = String.valueOf(FILES.charAt(posFile)) + String.valueOf(RANKS.charAt(posRank));
+		String fireSq = String.valueOf(FILES.charAt(fireFile)) + String.valueOf(RANKS.charAt(fireRank));
+		String move = fireSq + square;
+		
+		if((Piece.MASK_TYPE & currentBoard.getPiece(fireFile, fireRank)) == Piece.PAWN && (posRank == 0 || posRank == 7)) {
+			currentOverlay = new PromoteDialog(
+					this, (byte) (Piece.MASK_COLOR & currentBoard.getPiece(fireFile, fireRank)), move);
+			repaint();
+		} else {
+			currentBoard.applyMove(move);
 			currentMoves.clear();
 			fireX = -1;
 			fireY = -1;
@@ -184,12 +221,22 @@ public class BoardCanvas extends Canvas {
 			new Thread(new MoveCommand()).start();
 		}
 	}
-	
+
 	private class MoveCommand implements Runnable {
 		public void run() {
 			currentBoard.applyMove(new SearchNode(currentBoard).getPreferredMove());
 			fireBoardChanged();
 			repaint();
 		}
+	}
+
+	public void firePromote(String move) {
+		currentOverlay = null;
+		currentBoard.applyMove(move);
+		currentMoves.clear();
+		fireX = -1;
+		fireY = -1;
+		repaint();
+		new Thread(new MoveCommand()).start();
 	}
 }
