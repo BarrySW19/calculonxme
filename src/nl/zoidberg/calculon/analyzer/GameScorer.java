@@ -4,9 +4,8 @@ import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Vector;
 
-import nl.zoidberg.calculon.engine.CheckDetector;
-import nl.zoidberg.calculon.engine.MoveGenerator;
 import nl.zoidberg.calculon.model.Board;
+import nl.zoidberg.calculon.model.Game;
 import nl.zoidberg.calculon.model.Piece;
 
 public class GameScorer {
@@ -43,21 +42,15 @@ public class GameScorer {
 	 * @return
 	 */
 	public int score(Board board) {
-		if (board.getHalfMoveCount() >= 100) {
-			return 0; // Draw by 50 move rule
-		}
 
-		if (!MoveGenerator.get().isMovePossible(board)) {
-			if (CheckDetector.alreadyInCheck(board)) {
-				// Checkmate
-				return -100000;
-			} else {
-				return 0; // Stalemate
-			}
-		}
-
-		if (board.getRepeatedCount() >= 3) {
+		String result = board.getResult();
+		
+		if(result == Game.RES_DRAW) {
 			return 0;
+		}
+		
+		if(result == Game.RES_BLACK_WIN || result == Game.RES_WHITE_WIN) {
+			return -100000;
 		}
 
 		int score = 0;
