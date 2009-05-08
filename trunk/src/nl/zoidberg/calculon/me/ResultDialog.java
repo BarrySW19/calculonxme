@@ -17,7 +17,7 @@ public class ResultDialog implements DialogOverlay {
 	public void keyPressed(int keyCode) {
 		switch(parent.getGameAction(keyCode)) {
 		case Canvas.FIRE:
-			parent.reset();
+			parent.closeDialog();
 			break;
 		}
 		parent.repaint();
