@@ -81,18 +81,53 @@ public class Board {
     }
     
     public String getResult() {
-    	Hashtable map = MoveGenerator.get().generateMoves(this);
-    	if(map.size() > 0) {
-    		return "*";
-    	}
+    	
+		// Draw by 50 move rule
+		if(this.getHalfMoveCount() >= 100) {
+			return Game.RES_DRAW;
+		}
 
-    	if(getRepeatedCount() >= 3) {
-    		return Game.RES_DRAW;
+		// Draw by threefold repetition 
+		if(this.getRepeatedCount() >= 3) {
+			return Game.RES_DRAW;
+		}
+		
+		if( ! this.hasMatingMaterial()) {
+			return Game.RES_DRAW;
+		}
+		
+		if ( ! MoveGenerator.get().isMovePossible(this)) {
+			if (CheckDetector.alreadyInCheck(this)) {
+		   		return (flags&PLAYER_MASK) == PLAYER_BLACK ? Game.RES_WHITE_WIN : Game.RES_BLACK_WIN;
+			} else {
+				return Game.RES_DRAW; // Stalemate
+			}
+		}
+		
+		return Game.RES_NO_RESULT;
+    }
+
+    public boolean hasMatingMaterial() {
+    	int bmc = 0;
+    	int wmc = 0;
+    	
+    	for(int r = 0; r < 8; r++) {
+    		for(int f = 0; f < 8; f++) {
+    			byte piece = squares[f<<3|r];
+    			byte pType = (byte) (piece&Piece.MASK_TYPE);
+    			if(pType == Piece.PAWN || pType == Piece.ROOK || pType == Piece.QUEEN) {
+    				return true;
+    			}
+    			if(pType == Piece.BISHOP || pType == Piece.KNIGHT) {
+    				if((piece&Piece.MASK_COLOR) == Piece.WHITE) {
+    					wmc++;
+    				} else {
+    					bmc++;
+    				}
+    			}
+    		}
     	}
-    	if(CheckDetector.alreadyInCheck(this)) {
-    		return (flags&PLAYER_MASK) == PLAYER_BLACK ? Game.RES_WHITE_WIN : Game.RES_BLACK_WIN;
-    	}
-    	return Game.RES_DRAW;
+    	return (wmc > 1 || bmc > 1);
     }
 
     /**

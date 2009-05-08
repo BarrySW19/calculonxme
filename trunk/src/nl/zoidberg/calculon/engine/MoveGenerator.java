@@ -5,6 +5,7 @@ import java.util.Vector;
 import java.util.Hashtable;
 
 import nl.zoidberg.calculon.model.Board;
+import nl.zoidberg.calculon.model.Game;
 import nl.zoidberg.calculon.model.Piece;
 
 public class MoveGenerator {
@@ -45,9 +46,9 @@ public class MoveGenerator {
     public Hashtable generateMoves(Board board) {
         Hashtable rv = new Hashtable();
 
-        if(board.getRepeatedCount() >= 3) {
-            return rv;
-        }
+		if(board == null || board.getResult() != Game.RES_NO_RESULT) {
+			return rv;
+		}
 
         for(int file = 0; file < 8; file++) {
             for(int rank = 0; rank < 8; rank++) {
