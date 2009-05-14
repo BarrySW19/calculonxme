@@ -1,51 +1,75 @@
 package nl.zoidberg.calculon.engine;
 
-import java.util.Hashtable;
+import java.util.Vector;
 
-import nl.zoidberg.calculon.model.Board;
 
 public abstract class StraightMoveGenerator extends PieceMoveGenerator {
 
-	public Hashtable generateMoves(Board board, int file, int rank) {
-		return this.generateMoves(board, file, rank, false);
-	}
-	
-	public Hashtable generateMoves(Board board, int file, int rank, boolean oneOnly) {
-		Hashtable rv = new Hashtable();
-
-                int[][] directions = getDirections();
-                for(int x = 0; x < directions.length; x++)  {
-                    int[] i = directions[x];
-			generateMoves(board, file, rank, i[0], i[1], rv, oneOnly);
-		}
-		
-		return rv;
-	}
+	protected abstract int getPieceType();
 	
 	public abstract int[][] getDirections();
 
-	private void generateMoves(Board board, int file, int rank, int finc, int rinc, Hashtable rv, boolean oneOnly) {
-		int newFile = file + finc;
-		int newRank = rank + rinc;
-		while(Board.isOnBoard(newFile, newRank)) {
-			if(isOwnPiece(board, newFile, newRank)) {
+	protected void makeUpBoardMoves(Board board, byte player, long source, long destinations, int distance, Vector rv) {
+		BitBoard bitBoard = board.getBitBoard();
+		
+		int shift = distance;
+		while((destinations>>>shift & source) != 0) {
+			long moveTo = source<<shift;
+			if((moveTo & bitBoard.getBitmapColor(player)) != 0) {
 				return;
 			}
 			
-			String move = EngineUtils.toSimpleAlgebraic(file, rank, newFile, newRank);
-			Board nextBoard = board.clone().applyMove(move);
-			if( ! CheckDetector.inCheck(nextBoard)) {
-				rv.put(move, new SearchNode(nextBoard));
-                if(oneOnly) {
-                	return;
-                }
+			if((moveTo & bitBoard.getBitmapOppColor(player)) != 0) {
+            	String move = EngineUtils.toCoord(source) + EngineUtils.toCoord(moveTo);
+            	Board captureBoard = board.clone().applyMove(move);
+            	if( ! CheckDetector.inCheck(captureBoard, ! board.isInCheck())) {
+	                rv.addElement(new Move(move, null, board));
+            	}
+				break;
 			}
 			
-			if(isCaptureTarget(board, newFile, newRank)) {
+			long moveMap = source | source<<shift;
+			bitBoard.bitmaps[getPieceType()] ^= moveMap;
+			bitBoard.bitmaps[player] ^= moveMap;
+			if( ! CheckDetector.inCheck(bitBoard, player, ! board.isInCheck())) {
+            	String move = EngineUtils.toCoord(source) + EngineUtils.toCoord(moveTo);
+                rv.addElement(new Move(move, null, board));
+			}
+			bitBoard.bitmaps[getPieceType()] ^= moveMap;
+			bitBoard.bitmaps[player] ^= moveMap;
+			shift += distance;;
+		}
+	}
+	
+	protected void makeDownBoardMoves(Board board, byte player, long source, long destinations, int distance, Vector rv) {
+		BitBoard bitBoard = board.getBitBoard();
+		
+		int shift = distance;
+		while((destinations<<shift & source) != 0) {
+			long moveTo = source>>>shift;
+			if((moveTo & bitBoard.getBitmapColor(player)) != 0) {
 				return;
 			}
-			newFile += finc;
-			newRank += rinc;
+			
+			if((moveTo & bitBoard.getBitmapOppColor(player)) != 0) {
+            	String move = EngineUtils.toCoord(source) + EngineUtils.toCoord(moveTo);
+            	Board captureBoard = board.clone().applyMove(move);
+            	if( ! CheckDetector.inCheck(captureBoard, ! board.isInCheck())) {
+	                rv.addElement(new Move(move, null, board));
+            	}
+				break;
+			}
+			
+			long moveMap = source | source>>>shift;
+			bitBoard.bitmaps[getPieceType()] ^= moveMap;
+			bitBoard.bitmaps[player] ^= moveMap;
+			if( ! CheckDetector.inCheck(bitBoard, player, ! board.isInCheck())) {
+            	String move = EngineUtils.toCoord(source) + EngineUtils.toCoord(moveTo);
+                rv.addElement(new Move(move, null, board));
+			}
+			bitBoard.bitmaps[getPieceType()] ^= moveMap;
+			bitBoard.bitmaps[player] ^= moveMap;
+			shift += distance;;
 		}
 	}
 }

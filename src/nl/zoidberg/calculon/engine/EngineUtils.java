@@ -1,5 +1,9 @@
 package nl.zoidberg.calculon.engine;
 
+import java.util.Enumeration;
+import java.util.Hashtable;
+import java.util.Vector;
+
 import nl.zoidberg.calculon.model.Piece;
 
 public class EngineUtils {
@@ -74,6 +78,11 @@ public class EngineUtils {
 		coords[63] = "H8";		
 	}
 	
+	public static String toCoord(long oneBit) {
+		int trailing = LongUtil.numberOfTrailingZeros(oneBit);
+		return coords[(trailing&0x38)>>3 | (trailing&0x07)<<3];
+	}
+	
 	public static String toSimpleAlgebraic(int file1, int rank1, int file2, int rank2) {
 		return coords[file1<<3|rank1] + coords[file2<<3|rank2];
 	}
@@ -84,5 +93,18 @@ public class EngineUtils {
 	
 	public static byte getColor(byte piece) {
 		return (byte) (piece & Piece.MASK_COLOR);
+	}
+	
+	public static void addAll(Vector to, Vector from) {
+		for(Enumeration e = from.elements(); e.hasMoreElements(); ) {
+			to.addElement(e.nextElement());
+		}
+	}
+
+	public static void putAll(Hashtable to, Hashtable from) {
+		for(Enumeration e = from.keys(); e.hasMoreElements(); ) {
+			Object key = e.nextElement();
+			to.put(key, from.get(key));
+		}
 	}
 }

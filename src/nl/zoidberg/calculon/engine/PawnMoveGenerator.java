@@ -1,71 +1,61 @@
 package nl.zoidberg.calculon.engine;
 
-import java.util.Hashtable;
+import java.util.Vector;
 
-import nl.zoidberg.calculon.model.Board;
 import nl.zoidberg.calculon.model.Piece;
 
 public class PawnMoveGenerator extends PieceMoveGenerator {
 
-	public Hashtable generateMoves(Board board, int file, int rank) {
-		return this.generateMoves(board, file, rank, false);
-	}
-	
-	public Hashtable generateMoves(Board board, int file, int rank, boolean oneOnly) {
-		Hashtable rv = new Hashtable();
-
-		int nextRank = (board.getPlayer() & Piece.MASK_COLOR) == Piece.WHITE ? 1 : -1;
-		int homeRank = (board.getPlayer() & Piece.MASK_COLOR) == Piece.WHITE ? 1 : 6;
+	public Vector generateMoves(Board board) {
+		Vector rv = new Vector();
 		
-		if(isEmpty(board, file, rank + nextRank)) {
-			String move = EngineUtils.toSimpleAlgebraic(file, rank, file, rank + nextRank);
-			addMove(move, board, rv);
-			if(oneOnly && rv.size() > 0) {
-				return rv;
+		BitBoard bitBoard = board.getBitBoard();
+		BitBoard scratchPad = bitBoard.clone();
+		long myColor = bitBoard.getBitmapColor(board.getPlayer());
+		long toPlayMap = myColor & bitBoard.getAllPieces();
+		
+		int playerIdx = board.getPlayer() == Piece.WHITE ? BitBoard.MAP_WHITE : BitBoard.MAP_BLACK;
+		long freePawns = toPlayMap & bitBoard.getBitmapPawns();
+		freePawns &= ~(board.getPlayer() == Piece.WHITE ? bitBoard.getAllPieces()>>>8 : bitBoard.getAllPieces()<<8);
+		for(long pawns = freePawns; pawns != 0; ) {
+			long nextPawn = LongUtil.highestOneBit(pawns);
+			pawns ^= nextPawn;
+			long bothSquares = nextPawn | (playerIdx == BitBoard.MAP_WHITE ? nextPawn<<8 : nextPawn>>>8);
+			scratchPad.bitmaps[BitBoard.MAP_PAWNS] ^= bothSquares;
+			scratchPad.bitmaps[playerIdx] ^= bothSquares;
+			if( ! CheckDetector.inCheck(scratchPad, board.getPlayer(), ! board.isInCheck())) {
+				String move = EngineUtils.toCoord(nextPawn) + EngineUtils.toCoord(bothSquares^nextPawn);
+				if((bothSquares & (BitBoard.getRankMap(0)|BitBoard.getRankMap(7))) != 0) {
+					rv.addElement(new Move(move + "=Q", board.clone().applyMove(move + "=Q")));
+					rv.addElement(new Move(move + "=R", board.clone().applyMove(move + "=R")));
+					rv.addElement(new Move(move + "=N", board.clone().applyMove(move + "=N")));
+					rv.addElement(new Move(move + "=B", board.clone().applyMove(move + "=B")));
+				} else {
+					rv.addElement(new Move(move, board.clone().applyMove(move)));
+				}
 			}
+			// Unmake move
+			scratchPad.bitmaps[BitBoard.MAP_PAWNS] ^= bothSquares;
+			scratchPad.bitmaps[playerIdx] ^= bothSquares;
 		}
 		
-		if(rank == homeRank && isEmpty(board, file, rank + nextRank)
-				&& isEmpty(board, file, rank + (2*nextRank))) {
-			String move = EngineUtils.toSimpleAlgebraic(file, rank, file, rank + (2*nextRank));
-			addMove(move, board, rv);
-			if(oneOnly && rv.size() > 0) {
-				return rv;
+		freePawns &= ~(board.getPlayer() == Piece.WHITE ? bitBoard.getAllPieces()>>>16 : bitBoard.getAllPieces()<<16);
+		freePawns &= (BitBoard.getRankMap(board.getPlayer() == Piece.WHITE ? 1 : 6));
+		for(long pawns = freePawns; pawns != 0; ) {
+			long nextPawn = LongUtil.highestOneBit(pawns);
+			pawns ^= nextPawn;
+			long bothSquares = nextPawn | (playerIdx == BitBoard.MAP_WHITE ? nextPawn<<16 : nextPawn>>>16);
+			scratchPad.bitmaps[BitBoard.MAP_PAWNS] ^= bothSquares;
+			scratchPad.bitmaps[playerIdx] ^= bothSquares;
+			if( ! CheckDetector.inCheck(scratchPad, board.getPlayer(), ! board.isInCheck())) {
+				String move = EngineUtils.toCoord(nextPawn) + EngineUtils.toCoord(bothSquares^nextPawn);
+				rv.addElement(new Move(move, board.clone().applyMove(move)));
 			}
-		}
-		
-		if(isCaptureTargetForPawn(board, file-1, rank+nextRank)) {
-			String move = EngineUtils.toSimpleAlgebraic(file, rank, file-1, rank + nextRank);
-			addMove(move, board, rv);
-			if(oneOnly && rv.size() > 0) {
-				return rv;
-			}
-		}
-		
-		if(isCaptureTargetForPawn(board, file+1, rank+nextRank)) {
-			String move = EngineUtils.toSimpleAlgebraic(file, rank, file+1, rank + nextRank);
-			addMove(move, board, rv);
-			if(oneOnly && rv.size() > 0) {
-				return rv;
-			}
+			// Unmake move
+			scratchPad.bitmaps[BitBoard.MAP_PAWNS] ^= bothSquares;
+			scratchPad.bitmaps[playerIdx] ^= bothSquares;
 		}
 		
 		return rv;
-	}
-	
-	private void addMove(String move, Board board, Hashtable rv) {
-		Board nextBoard = board.clone().applyMove(move);
-		if(CheckDetector.inCheck(nextBoard)) {
-			return;
-		}
-		
-		if(move.charAt(3) == '1' || move.charAt(3) == '8') {
-			rv.put(move + "=N", new SearchNode(board.clone().applyMove(move + "=N")));
-			rv.put(move + "=B", new SearchNode(board.clone().applyMove(move + "=B")));
-			rv.put(move + "=R", new SearchNode(board.clone().applyMove(move + "=R")));
-			rv.put(move + "=Q", new SearchNode(board.clone().applyMove(move + "=Q")));
-		} else {
-			rv.put(move, new SearchNode(nextBoard));
-		}
 	}
 }

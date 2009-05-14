@@ -1,15 +1,22 @@
 package nl.zoidberg.calculon.engine;
 
-import nl.zoidberg.calculon.model.Board;
 import nl.zoidberg.calculon.model.Piece;
 
 public class CheckDetector {
-
+	private static final int[] DIR_U	= { 0, 1 };
+	private static final int[] DIR_D	= { 0, -1 };
+	private static final int[] DIR_R	= { 1, 0 };
+	private static final int[] DIR_L	= { -1, 0 };
+	private static final int[] DIR_UR	= { 1, 1 };
+	private static final int[] DIR_DR	= { 1, -1 };
+	private static final int[] DIR_DL	= { -1, -1 };
+	private static final int[] DIR_UL	= { -1, 1 };
+	
 	/**
 	 * Tests whether the player with the move is in check - i.e. whether the last move played was a checking move.
 	 */
 	public static boolean alreadyInCheck(Board board) {
-        return inCheck(board, board.getPlayer());
+        return inCheck(board.getBitBoard(), board.getPlayer(), false);
     }
 
 	/**
@@ -18,82 +25,119 @@ public class CheckDetector {
 	 * @param board
 	 * @return
 	 */
-    public static boolean inCheck(Board board) {
+    public static boolean inCheck(Board board, boolean pinCheckOnly) {
         byte color = board.getPlayer() == Piece.WHITE ? Piece.BLACK : Piece.WHITE;
-        return inCheck(board, color);
+        return inCheck(board.getBitBoard(), color, pinCheckOnly);
     }
 
-    private static boolean inCheck(Board board, byte color) {
-        int kingFile = -1, kingRank = -1;
+    /**
+     * The pin check flag can be used for tests when a piece other than the king moved,
+     * possibly exposing the king to check. As this sort of check could only be by a
+     * bishop, rook or queen it is not necessary to check for checks by enemy pawns,
+     * knights or king.
+     * 
+     * @param board
+     * @param color
+     * @param pinCheckOnly
+     * @return
+     */
+    static boolean inCheck(BitBoard bitBoard, byte color, boolean pinCheckOnly) {
+        int[] kingPos = BitBoard.toCoords(bitBoard.getBitmapColor(color) & bitBoard.getBitmapKings());
+        
+        if( ! pinCheckOnly) {
+        	int pRank = kingPos[1] + (color == Piece.WHITE ? 1 : -1);
+        
+	        long enemyPawns = bitBoard.getBitmapOppColor(color) & bitBoard.getBitmapPawns();
+	        
+	        if(Board.isOnBoard(kingPos[0]-1, pRank) && (enemyPawns & 1L<<(pRank<<3)<<(kingPos[0]-1)) != 0) {
+	        	return true;
+	        }
+	        if(Board.isOnBoard(kingPos[0]+1, pRank) && (enemyPawns & 1L<<(pRank<<3)<<(kingPos[0]+1)) != 0) {
+	        	return true;
+	        }
 
-        for(int file = 0; file < 8 && kingFile == -1; file++) {
-            for(int rank = 0; rank < 8; rank++) {
-                byte piece = board.getPiece(file, rank);
-                if((piece&Piece.MASK_TYPE) == Piece.KING && (piece&Piece.MASK_COLOR) == color) {
-                    kingFile = file;
-                    kingRank = rank;
-                    break;
-                }
-            }
+	        long kingMoves = KingMoveGenerator.kmBitmap[kingPos[0]<<3|kingPos[1]];
+	        if((kingMoves & bitBoard.getBitmapKings() & bitBoard.getBitmapOppColor(color)) != 0) {
+	        	return true;
+	        }
+	        
+	        long knightMoves = KnightMoveGenerator.kmBitmap[kingPos[0]<<3|kingPos[1]];
+	        if((knightMoves & bitBoard.getBitmapKnights() & bitBoard.getBitmapOppColor(color)) != 0) {
+	        	return true;
+	        }
         }
 
-        for(int i = 0; i < QueenMoveGenerator.DIRECTIONS.length; i++) {
-            int[] dir = QueenMoveGenerator.DIRECTIONS[i];
-            if(detectPiece(board, kingFile, kingRank, dir)) {
-                return true;
-            }
+        int kingPosIdx = kingPos[0]<<3|kingPos[1];
+        long allEnemies = bitBoard.getBitmapOppColor(color);
+
+        long lineAttackers = allEnemies & (bitBoard.getBitmapRooks()|bitBoard.getBitmapQueens());
+        if((lineAttackers & Bitmaps.crossMap[kingPosIdx]) != 0) {
+        
+	        if((Bitmaps.maps[Bitmaps.BM_U][kingPosIdx] & lineAttackers) != 0) {
+	        	if(detectLineAttackingPiece(bitBoard, kingPos, DIR_U, color, lineAttackers)) {
+	        		return true;
+	        	}
+	        }
+	        if((Bitmaps.maps[Bitmaps.BM_D][kingPosIdx] & lineAttackers) != 0) {
+	        	if(detectLineAttackingPiece(bitBoard, kingPos, DIR_D, color, lineAttackers)) {
+	        		return true;
+	        	}
+	        }
+	        if((Bitmaps.maps[Bitmaps.BM_L][kingPosIdx] & lineAttackers) != 0) {
+	        	if(detectLineAttackingPiece(bitBoard, kingPos, DIR_L, color, lineAttackers)) {
+	        		return true;
+	        	}
+	        }
+	        if((Bitmaps.maps[Bitmaps.BM_R][kingPosIdx] & lineAttackers) != 0) {
+	        	if(detectLineAttackingPiece(bitBoard, kingPos, DIR_R, color, lineAttackers)) {
+	        		return true;
+	        	}
+	        }
         }
         
-        for(int i = 0; i < KnightMoveGenerator.MOVES.length; i++) {
-            int[] move = KnightMoveGenerator.MOVES[i];
-            int nFile = kingFile + move[0];
-            int nRank = kingRank + move[1];
-            if( ! Board.isOnBoard(nFile, nRank)) {
-                continue;
-            }
-            byte piece = board.getPiece(nFile, nRank);
-            if((piece & Piece.MASK_COLOR) != color && (piece & Piece.MASK_TYPE) == Piece.KNIGHT) {
-                return true;
-            }
+        long diagAttackers = allEnemies & (bitBoard.getBitmapBishops()|bitBoard.getBitmapQueens());
+        if((diagAttackers & Bitmaps.diagMap[kingPosIdx]) != 0) {
+	        if((Bitmaps.maps[Bitmaps.BM_UR][kingPosIdx] & diagAttackers) != 0) {
+	        	if(detectLineAttackingPiece(bitBoard, kingPos, DIR_UR, color, diagAttackers)) {
+	        		return true;
+	        	}
+	        }
+	        if((Bitmaps.maps[Bitmaps.BM_UL][kingPosIdx] & diagAttackers) != 0) {
+	        	if(detectLineAttackingPiece(bitBoard, kingPos, DIR_UL, color, diagAttackers)) {
+	        		return true;
+	        	}
+	        }
+	        if((Bitmaps.maps[Bitmaps.BM_DR][kingPosIdx] & diagAttackers) != 0) {
+	        	if(detectLineAttackingPiece(bitBoard, kingPos, DIR_DR, color, diagAttackers)) {
+	        		return true;
+	        	}
+	        }
+	        if((Bitmaps.maps[Bitmaps.BM_DL][kingPosIdx] & diagAttackers) != 0) {
+	        	if(detectLineAttackingPiece(bitBoard, kingPos, DIR_DL, color, diagAttackers)) {
+	        		return true;
+	        	}
+	        }
         }
-
+        
         return false;
     }
-
-    private static boolean detectPiece(Board board, int kingFile, int kingRank, int[] dir) {
-        byte king = board.getPiece(kingFile, kingRank);
-        int nFile = kingFile + dir[0];
-        int nRank = kingRank + dir[1];
-        int distance = 1;
+    
+    private static boolean detectLineAttackingPiece(BitBoard bitBoard, int[] kingPos, int[] dir, byte color, long attackers) {
+        int nFile = kingPos[0] + dir[0];
+        int nRank = kingPos[1] + dir[1];
         while(Board.isOnBoard(nFile, nRank)) {
-            byte piece = board.getPiece(nFile, nRank);
-            if(piece == Piece.EMPTY) {
-                nFile += dir[0];
-                nRank += dir[1];
-                distance++;
-                continue;
-            }
-            if((piece&Piece.MASK_COLOR) == (king&Piece.MASK_COLOR)) {
-                return false;
-            }
-
-            byte pieceType = (byte) (piece&Piece.MASK_TYPE);
-            if(pieceType == Piece.QUEEN) {
-                return true;
-            }
-            if((dir[0] == 0 || dir[1] == 0) && (pieceType == Piece.ROOK)) {
-                return true;
-            }
-            if((dir[0] != 0 && dir[1] != 0) && (pieceType == Piece.BISHOP)) {
-                return true;
-            }
-            if(distance == 1 && pieceType == Piece.KING) {
-            	return true;
-            }
-            if((distance == 1 && dir[0] != 0 && dir[1] != 0) && (pieceType == Piece.PAWN)) {
-                return nRank == (kingRank + ((piece&Piece.MASK_COLOR) == Piece.WHITE ? -1 : 1));
-            }
-            return false;
+        	if((bitBoard.getBitmapColor(color) & 1L<<(nRank<<3)<<nFile) != 0) {
+        		// There is a piece of my color in the way.
+        		return false;
+        	}
+        	
+        	if((bitBoard.getBitmapOppColor(color) & 1L<<(nRank<<3)<<nFile) != 0) {
+        		// There is a piece of opponents color here.
+            	return ((attackers & 1L<<(nRank<<3)<<nFile) != 0);
+        	}
+        	
+            nFile += dir[0];
+            nRank += dir[1];
         }
         return false;
     }
