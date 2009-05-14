@@ -4,10 +4,11 @@ import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Vector;
 
+import nl.zoidberg.calculon.engine.Board;
 import nl.zoidberg.calculon.engine.CheckDetector;
 import nl.zoidberg.calculon.engine.EngineUtils;
+import nl.zoidberg.calculon.engine.Move;
 import nl.zoidberg.calculon.engine.MoveGenerator;
-import nl.zoidberg.calculon.model.Board;
 import nl.zoidberg.calculon.model.Piece;
 
 public class PGNUtils {
@@ -16,10 +17,10 @@ public class PGNUtils {
 	}
 
 	public static Hashtable toPgnMoveMap(Board board) {
-		Hashtable allMoves = MoveGenerator.get().generateMoves(board);
+		Vector allMoves = new MoveGenerator(board).getAllRemainingMoves();
 		Hashtable rv = new Hashtable();
-		for(Enumeration e = allMoves.keys(); e.hasMoreElements(); ) {
-			String intMove = (String) e.nextElement();
+		for(Enumeration e = allMoves.elements(); e.hasMoreElements(); ) {
+			String intMove = ((Move) e.nextElement()).getMove();
 			rv.put(translateMove(board, intMove), intMove);
 		}
 		Hashtable duplicate = new Hashtable();
@@ -92,11 +93,10 @@ public class PGNUtils {
 
 		if (testClash) {
 			String fromSquare = simpleAlgebraic.substring(0, 2);
-			Hashtable m = MoveGenerator.get()
-					.generateMoves(board);
+			Vector m = new MoveGenerator(board).getAllRemainingMoves();
 			Vector clashingPieces = new Vector();
-			for(Enumeration e = m.keys(); e.hasMoreElements(); ) {
-				String key = (String) e.nextElement();
+			for(Enumeration e = m.elements(); e.hasMoreElements(); ) {
+				String key = ((Move) e.nextElement()).getMove();
 				if (key.startsWith("O-")) {
 					continue;
 				}

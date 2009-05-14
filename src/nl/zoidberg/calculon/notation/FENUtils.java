@@ -1,8 +1,8 @@
 package nl.zoidberg.calculon.notation;
 
 
+import nl.zoidberg.calculon.engine.Board;
 import nl.zoidberg.calculon.engine.EngineUtils;
-import nl.zoidberg.calculon.model.Board;
 import nl.zoidberg.calculon.model.Piece;
 
 public class FENUtils {
