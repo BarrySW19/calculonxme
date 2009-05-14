@@ -1,77 +1,95 @@
 package nl.zoidberg.calculon.engine;
 
 import java.util.Enumeration;
-import java.util.Vector;
 import java.util.Hashtable;
+import java.util.NoSuchElementException;
+import java.util.Vector;
 
-import nl.zoidberg.calculon.model.Board;
-import nl.zoidberg.calculon.model.Game;
 import nl.zoidberg.calculon.model.Piece;
 
-public class MoveGenerator {
+public class MoveGenerator implements Enumeration {
 	
-	private static MoveGenerator instance = new MoveGenerator();
-	private static Hashtable generatorMap = new Hashtable();
+	private static Vector generators = new Vector();
+	
 	static {
-		generatorMap.put(new Byte(Piece.PAWN),      new PawnMoveGenerator());
-		generatorMap.put(new Byte(Piece.KNIGHT),    new KnightMoveGenerator());
-		generatorMap.put(new Byte(Piece.BISHOP),    new BishopMoveGenerator());
-		generatorMap.put(new Byte(Piece.ROOK),      new RookMoveGenerator());
-		generatorMap.put(new Byte(Piece.QUEEN),     new QueenMoveGenerator());
-		generatorMap.put(new Byte(Piece.KING),      new KingMoveGenerator());
+		generators.addElement(new PawnCaptureGenerator());
+		generators.addElement(new KnightMoveGenerator());
+		generators.addElement(new BishopMoveGenerator());
+		generators.addElement(new RookMoveGenerator());
+		generators.addElement(new QueenMoveGenerator());
+		generators.addElement(new PawnMoveGenerator());
+		generators.addElement(new KingMoveGenerator());
 	}
 	
-	public static MoveGenerator get() {
-		return instance;
+	private Board board;
+	private Vector queuedMoves = new Vector();
+	private int genIndex = 0;
+	
+	public MoveGenerator(Board board) {
+		this.board = board.clone();
 	}
 
-	private MoveGenerator() { }
-	
-	public boolean isMovePossible(Board board) {
-		for(int file = 0; file < 8; file++) {
-			for(int rank = 0; rank < 8; rank++) {
-				byte piece = board.getPiece(file, rank);
-				if((piece & Piece.MASK_TYPE) != Piece.EMPTY && (piece & Piece.MASK_COLOR) == board.getPlayer()) {
-					byte type = (byte) (board.getPiece(file, rank) & Piece.MASK_TYPE);
-					Hashtable moves = ((PieceMoveGenerator)generatorMap.get(new Byte(type))).generateMoves(board, file, rank, true);
-					if(moves.size() > 0) {
-						return true;
-					}
-				}
-			}
+	public boolean hasMoreElements() {
+		if(queuedMoves.size() == 0) {
+			populateMoves();
 		}
-		return false;
+		return (queuedMoves.size() > 0);
+	}
+
+	public Object nextElement() {
+		if(queuedMoves.size() == 0) {
+			populateMoves();
+		}
+		if(queuedMoves.size() == 0) {
+			throw new NoSuchElementException();
+		}
+		Move rv = (Move) queuedMoves.elementAt(0);
+		queuedMoves.removeElementAt(0);
+		return rv;
+	}
+
+	public void remove() {
+		throw new UnsupportedOperationException();
 	}
 	
-    public Hashtable generateMoves(Board board) {
-        Hashtable rv = new Hashtable();
-
-		if(board == null || board.getResult() != Game.RES_NO_RESULT) {
-			return rv;
+	private void populateMoves() {
+		if(genIndex >= generators.size()) {
+			return;
 		}
-
-        for(int file = 0; file < 8; file++) {
-            for(int rank = 0; rank < 8; rank++) {
-                byte piece = board.getPiece(file, rank);
-                if((piece & Piece.MASK_TYPE) != Piece.EMPTY && (piece & Piece.MASK_COLOR) == board.getPlayer()) {
-                    byte type = (byte) (board.getPiece(file, rank) & Piece.MASK_TYPE);
-                    Hashtable genMoves = ((PieceMoveGenerator)generatorMap.get(new Byte(type))).generateMoves(board, file, rank);
-                    for(Enumeration e = genMoves.keys(); e.hasMoreElements(); ) {
-                        String key = (String) e.nextElement();
-                        rv.put(key, genMoves.get(key));
-                    }
-                }
-            }
-        }
-
-        return rv;
-    }
-
-	public Hashtable getPossibleMoves(Board board) {
+		
+		if(board.isDrawnByRule()) {
+			return;
+		}
+		
+		PieceMoveGenerator nextGen = (PieceMoveGenerator) generators.elementAt(genIndex++);
+		EngineUtils.addAll(queuedMoves, nextGen.generateMoves(board));
+		
+		if(queuedMoves.size() == 0 && genIndex < generators.size()) {
+			populateMoves();
+		}
+	}
+	
+	/**
+	 * An easy way to generate all moves - this will be useful for testing and legal move generation, but not for
+	 * calculation as it's too slow.
+	 * 
+	 * @return
+	 */
+	public Vector getAllRemainingMoves() {
+		Vector moves = new Vector();
+		while(this.hasMoreElements()) {
+			moves.addElement(this.nextElement());
+		}
+		return moves;
+	}
+	
+	public static Hashtable getPossibleMoves(Board board) {
 		Hashtable moves = new Hashtable();
-                Hashtable genMoves = MoveGenerator.get().generateMoves(board);
-		for(Enumeration e = genMoves.keys(); e.hasMoreElements(); ) {
-                        String move = (String) e.nextElement();
+		
+		Vector v = new MoveGenerator(board).getAllRemainingMoves();
+		for(Enumeration e = v.elements(); e.hasMoreElements(); ) {
+			Move moveObj = (Move) e.nextElement();
+			String move = moveObj.getMove();
 			if("O-O".equals(move)) {
 				move = board.getPlayer() == Piece.WHITE ? "E1G1" : "E8G8";
 			}
