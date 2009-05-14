@@ -6,7 +6,7 @@ import java.util.Vector;
 import nl.zoidberg.calculon.analyzer.GameScorer;
 
 public class ChessEngine {
-	private static final int DEPTH = 3;
+	private static final int DEPTH = 2;
 	
 	private GameScorer gameScorer;
 	private int searchDepth = DEPTH;
@@ -119,7 +119,7 @@ public class ChessEngine {
 		ScoredMove bestMove = null;
 		for(Enumeration e = allMoves.elements(); e.hasMoreElements(); ) {
 			ScoredMove move = (ScoredMove) e.nextElement();
-			if(move.getScore() < bestMove.getScore()) {
+			if(bestMove == null || move.getScore() < bestMove.getScore()) {
 				bestMove = move;
 			}
 		}

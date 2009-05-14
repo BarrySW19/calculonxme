@@ -9,12 +9,11 @@ import javax.microedition.lcdui.Canvas;
 import javax.microedition.lcdui.Graphics;
 import javax.microedition.lcdui.Image;
 
+import nl.zoidberg.calculon.engine.Board;
+import nl.zoidberg.calculon.engine.ChessEngine;
 import nl.zoidberg.calculon.engine.MoveGenerator;
-import nl.zoidberg.calculon.engine.SearchNode;
-import nl.zoidberg.calculon.model.Board;
 import nl.zoidberg.calculon.model.Game;
 import nl.zoidberg.calculon.model.Piece;
-import nl.zoidberg.calculon.notation.FENUtils;
 
 public class BoardCanvas extends Canvas {
 	private static final String RANKS = "12345678";
@@ -75,7 +74,7 @@ public class BoardCanvas extends Canvas {
 	public BoardCanvas() {
 		currentBoard = new Board().initialise();
 //		FENUtils.loadPosition("1rbq2r1/3pkpp1/2n1p2p/1N1n4/1p1P3N/3Q2P1/1PP2PBP/R3R1K1 w - - 1 16", currentBoard);
-		FENUtils.loadPosition("7k/PP6/8/8/8/1r4R1/r5PP/7K w - - 1 1", currentBoard);
+//		FENUtils.loadPosition("7k/PP6/8/8/8/1r4R1/r5PP/7K w - - 1 1", currentBoard);
 		fireBoardChanged();
 	}
 	
@@ -84,7 +83,7 @@ public class BoardCanvas extends Canvas {
 	}
 
 	private void fireBoardChanged() {
-		currentMoves = MoveGenerator.get().getPossibleMoves(currentBoard);
+		currentMoves = MoveGenerator.getPossibleMoves(currentBoard);
 		for(Enumeration e = currentMoves.keys(); e.hasMoreElements(); ) {
 			String key = (String) e.nextElement();
 			Vector v = (Vector) currentMoves.get(key);
@@ -315,7 +314,7 @@ public class BoardCanvas extends Canvas {
 
 	private class MoveCommand implements Runnable {
 		public void run() {
-			applyMove(new SearchNode(currentBoard).getPreferredMove(), false);
+			applyMove(new ChessEngine().getPreferredMove(currentBoard), false);
 		}
 	}
 
