@@ -1,37 +1,26 @@
 package nl.zoidberg.calculon.analyzer;
 
-import java.util.Enumeration;
-import java.util.Hashtable;
-
-import java.util.Vector;
-import nl.zoidberg.calculon.model.Board;
-import nl.zoidberg.calculon.model.Piece;
+import nl.zoidberg.calculon.engine.BitBoard;
+import nl.zoidberg.calculon.engine.Board;
+import nl.zoidberg.calculon.engine.LongUtil;
 
 public class MaterialScorer implements PositionScorer {
-
-	private static float[] scores = new float[16];
-
-	static {
-		scores[Piece.WHITE | Piece.PAWN] = 1000;
-		scores[Piece.WHITE | Piece.KNIGHT] = 3000;
-		scores[Piece.WHITE | Piece.BISHOP] = 3000;
-		scores[Piece.WHITE | Piece.ROOK] = 5000;
-		scores[Piece.WHITE | Piece.QUEEN] = 9000;
-		scores[Piece.WHITE | Piece.KING] = 50000;
-		scores[Piece.BLACK | Piece.PAWN] = -1000;
-		scores[Piece.BLACK | Piece.KNIGHT] = -3000;
-		scores[Piece.BLACK | Piece.BISHOP] = -3000;
-		scores[Piece.BLACK | Piece.ROOK] = -5000;
-		scores[Piece.BLACK | Piece.QUEEN] = -9000;
-		scores[Piece.BLACK | Piece.KING] = -50000;
-	}
-
-	public int scorePosition(Board board, Hashtable pieceMap) {
+    
+	public int scorePosition(Board board) {
+		BitBoard bitBoard = board.getBitBoard(); 
 		int score = 0;
-		for (Enumeration e = pieceMap.keys(); e.hasMoreElements();) {
-			Byte piece = (Byte) e.nextElement();
-			score += scores[piece.byteValue()] * ((Vector) pieceMap.get(piece)).size();
-		}
+		
+		score += 9000 * (LongUtil.bitCount(bitBoard.getBitmapWhite()&bitBoard.getBitmapQueens())
+				- LongUtil.bitCount(bitBoard.getBitmapBlack()&bitBoard.getBitmapQueens()));
+		score += 5000 * (LongUtil.bitCount(bitBoard.getBitmapWhite()&bitBoard.getBitmapRooks())
+				- LongUtil.bitCount(bitBoard.getBitmapBlack()&bitBoard.getBitmapRooks()));
+		score += 3000 * (LongUtil.bitCount(bitBoard.getBitmapWhite()&bitBoard.getBitmapBishops())
+				- LongUtil.bitCount(bitBoard.getBitmapBlack()&bitBoard.getBitmapBishops()));
+		score += 3000 * (LongUtil.bitCount(bitBoard.getBitmapWhite()&bitBoard.getBitmapKnights())
+				- LongUtil.bitCount(bitBoard.getBitmapBlack()&bitBoard.getBitmapKnights()));
+		score += 1000 * (LongUtil.bitCount(bitBoard.getBitmapWhite()&bitBoard.getBitmapPawns())
+				- LongUtil.bitCount(bitBoard.getBitmapBlack()&bitBoard.getBitmapPawns()));
+		
 		return score;
 	}
 }

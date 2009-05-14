@@ -1,99 +1,89 @@
 package nl.zoidberg.calculon.analyzer;
 
-import java.util.Hashtable;
-
-import nl.zoidberg.calculon.model.Board;
-import nl.zoidberg.calculon.model.Piece;
+import nl.zoidberg.calculon.engine.BitBoard;
+import nl.zoidberg.calculon.engine.Board;
+import nl.zoidberg.calculon.engine.LongUtil;
 
 public class PawnStructureScorer implements PositionScorer {
+	
+	public static int S_ISLAND 		= 100;
+	public static int S_ISOLATED 	= 100;
+	public static int S_DOUBLED 	= 100;
+	
+	private static int[] S_ADVANCE = { 20, 100, 200, 400, }; 
 
-	public static int S_ISLAND = 100;
-	public static int S_ISOLATED = 100;
-	public static int S_DOUBLED = 100;
-
-	private static int[] S_ADVANCE = { 20, 100, 200, 400, };
-
-	public int scorePosition(Board board, Hashtable pieceMap) {
-
-		byte[] whitePawns = new byte[8], blackPawns = new byte[8];
-		populate(board, whitePawns, Piece.WHITE);
-		populate(board, blackPawns, Piece.BLACK);
+	public int scorePosition(Board board) {
+		
+		BitBoard bitBoard = board.getBitBoard();
+		long whitePawns = bitBoard.getBitmapWhite()&bitBoard.getBitmapPawns();
+		long blackPawns = bitBoard.getBitmapBlack()&bitBoard.getBitmapPawns();
 
 		int score = 0;
 		score += countIslands(blackPawns) * S_ISLAND;
 		score -= countIslands(whitePawns) * S_ISLAND;
-
-		score -= getIsolatedCount(whitePawns) * S_ISOLATED;
+		
 		score += getIsolatedCount(blackPawns) * S_ISOLATED;
-
-		score -= getDoubledCount(whitePawns) * S_DOUBLED;
-		score += getDoubledCount(blackPawns) * S_DOUBLED;
-
-		score += getAdvanceScore(board, Piece.WHITE);
-		score -= getAdvanceScore(board, Piece.BLACK);
-
+		score -= getIsolatedCount(whitePawns) * S_ISOLATED;
+		
+		score += getDoubledScore(whitePawns, blackPawns);
+		score += getAdvanceScore(board, whitePawns, blackPawns);
+		
 		return score;
 	}
-
-	private int getAdvanceScore(Board board, byte color) {
+	
+	private int getAdvanceScore(Board board, long whitePawns, long blackPawns) {
+		
 		int score = 0;
-		byte findPiece = (byte) (color | Piece.PAWN);
-		for (int rank = 3; rank < 7; rank++) {
-			int sRank = color == Piece.WHITE ? rank : 7 - rank;
-			int bonus = S_ADVANCE[rank - 3];
-			for (int file = 0; file < 8; file++) {
-				if (board.getPiece(file, sRank) == findPiece) {
-					score += bonus;
-				}
-			}
+		for(int rank = 3; rank < 7; rank++) {
+			score += LongUtil.bitCount(whitePawns&BitBoard.getRankMap(rank)) * S_ADVANCE[rank-3]; 
+			score -= LongUtil.bitCount(blackPawns&BitBoard.getRankMap(7-rank)) * S_ADVANCE[rank-3]; 
 		}
+		
 		return score;
 	}
-
-	private void populate(Board board, byte[] counts, byte color) {
-		byte findPiece = (byte) (color | Piece.PAWN);
-		for (int file = 0; file < 8; file++) {
-			for (int rank = 0; rank < 8; rank++) {
-				if (board.getPiece(file, rank) == findPiece) {
-					counts[file]++;
-				}
-			}
-		}
-	}
-
-	private int countIslands(byte[] pawns) {
+	
+	private int countIslands(long pawns) {
 		boolean inSea = true;
 		int count = 0;
-		for (int i = 0; i < 8; i++) {
-			if (pawns[i] != 0 && inSea) {
+		for(int file = 0; file < 8; file++) {
+			long pawnsOnFile = pawns & BitBoard.getFileMap(file);
+			if(pawnsOnFile != 0 && inSea) {
 				count++;
 				inSea = false;
-			} else if (pawns[i] == 0 && !inSea) {
+			} else if(pawnsOnFile == 0 && !inSea) {
 				inSea = true;
 			}
 		}
 		return count;
 	}
-
-	private int getDoubledCount(byte[] pawns) {
-		int count = 0;
-		for (int i = 0; i < 8; i++) {
-			if (pawns[i] > 1) {
-				count += pawns[i] - 1;
-			}
+	
+	private int getDoubledScore(long whitePawns, long blackPawns) {
+		int score = 0;
+		
+		for(int file = 0; file < 8; file++) {
+			int wCount = LongUtil.bitCount(whitePawns & BitBoard.getFileMap(file));
+			int bCount = LongUtil.bitCount(blackPawns & BitBoard.getFileMap(file));
+			score -= (wCount > 1 ? (wCount-1) * S_DOUBLED : 0);
+			score += (bCount > 1 ? (bCount-1) * S_DOUBLED : 0);
 		}
-		return count;
+		return score;
 	}
-
-	private int getIsolatedCount(byte[] pawns) {
+	
+	private int getIsolatedCount(long pawns) {
 		int count = 0;
-		for (int i = 0; i < 8; i++) {
-			if (pawns[i] > 0) {
-				if ((i == 0 || pawns[i - 1] == 0)
-						&& (i == 7 || pawns[i + 1] == 0)) {
-					count += pawns[i];
-				}
+		long prevFile = 0;
+		long thisFile = 0;
+		for(int file = 0; file < 8; file++) {
+			if(file == 0) {
+				thisFile = pawns & BitBoard.getFileMap(file);
 			}
+			long nextFile = (file == 7 ? 0 : pawns & BitBoard.getFileMap(file+1));
+			
+			if(thisFile != 0 && prevFile == 0 && nextFile == 0) {
+				count += LongUtil.bitCount(thisFile);
+			}
+			prevFile = thisFile;
+			thisFile = nextFile;
 		}
 		return count;
 	}

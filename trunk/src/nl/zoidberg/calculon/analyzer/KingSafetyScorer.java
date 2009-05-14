@@ -1,29 +1,29 @@
 package nl.zoidberg.calculon.analyzer;
 
-import java.util.Hashtable;
-import java.util.Vector;
-import nl.zoidberg.calculon.model.Board;
+import nl.zoidberg.calculon.engine.BitBoard;
+import nl.zoidberg.calculon.engine.Board;
 import nl.zoidberg.calculon.model.Piece;
 
 public class KingSafetyScorer implements PositionScorer {
 
-	public int scorePosition(Board board, Hashtable pieceMap) {
+	public int scorePosition(Board board) {
 		int score = 0;
-		score += scoreSafety(board, Piece.WHITE, pieceMap);
-		score -= scoreSafety(board, Piece.BLACK, pieceMap);
+		score += scoreSafety(board, Piece.WHITE);
+		score -= scoreSafety(board, Piece.BLACK);
 		return score;
 	}
 
-	private int scoreSafety(Board board, byte color, Hashtable pieceMap) {
-		byte oppColor = color == Piece.WHITE ? Piece.BLACK : Piece.WHITE;
+	private int scoreSafety(Board board, byte color) {
+		BitBoard bitBoard = board.getBitBoard();
 
-		if(pieceMap.get(new Byte((byte) (Piece.QUEEN|oppColor))) == null) {
+		if((bitBoard.getBitmapOppColor(color)|bitBoard.getBitmapQueens()) == 0) {
 			// Fairly crude endgame test...
 			return 0;
 		}
 		
 		int score = 0;
-		int[] kingPos = (int[]) ((Vector)pieceMap.get(new Byte((byte) (Piece.KING|color)))).elementAt(0);
+		int[] kingPos = BitBoard.toCoords(bitBoard.getBitmapColor(color) & bitBoard.getBitmapKings());
+		
 		if(kingPos[0] == 3 || kingPos[0] == 4) {
 			score -= 250;
 		}
@@ -39,4 +39,5 @@ public class KingSafetyScorer implements PositionScorer {
 		
 		return score;
 	}
+
 }

@@ -1,10 +1,8 @@
 package nl.zoidberg.calculon.analyzer;
 
-import java.util.Hashtable;
-
-import nl.zoidberg.calculon.model.Board;
+import nl.zoidberg.calculon.engine.Board;
 
 public interface PositionScorer {
 	
-	public int scorePosition(Board board, Hashtable pieceMap);
+	public int scorePosition(Board board);
 }
