@@ -23,12 +23,24 @@ public class KnightScorer implements PositionScorer {
 		BitBoard bitBoard = board.getBitBoard();
 		int score = 0;
 		
+		long enemyPawns = bitBoard.getBitmapOppColor(color) & bitBoard.getBitmapPawns();
+		long enemyPawnsRight = color == Piece.WHITE
+			? (enemyPawns & ~BitBoard.getFileMap(0))>>>9 : (enemyPawns & ~BitBoard.getFileMap(0))<<7;
+		long enemyPawnsLeft = color == Piece.WHITE
+			? (enemyPawns & ~BitBoard.getFileMap(7))>>>7 : (enemyPawns & ~BitBoard.getFileMap(7))<<9;
+			
+		long myPawns = bitBoard.getBitmapColor(color) & bitBoard.getBitmapPawns();
+		long myPawnsRight = color == Piece.WHITE
+			? (myPawns & ~BitBoard.getFileMap(0))<<7 : (myPawns & ~BitBoard.getFileMap(0))>>>9;
+		long myPawnsLeft = color == Piece.WHITE
+			? (myPawns & ~BitBoard.getFileMap(7))<<9 : (myPawns & ~BitBoard.getFileMap(7))>>>7;
+
 		int pawnAttackDir = (color == Piece.WHITE ? 1 : -1);
-		byte oppColor = (color == Piece.WHITE ? Piece.BLACK : Piece.WHITE);
 		long knightMap = (bitBoard.getBitmapColor(color) & bitBoard.getBitmapKnights());
 		while(knightMap != 0) {
 			long nextKnight = LongUtil.highestOneBit(knightMap);
 			knightMap ^= nextKnight;
+			
 			int[] position = BitBoard.toCoords(nextKnight);
 			long knightMoves = KnightMoveGenerator.kmBitmap[position[0]<<3|position[1]];
 
@@ -38,14 +50,11 @@ public class KnightScorer implements PositionScorer {
 			while(knightMoves != 0) {
 				long nextSq = LongUtil.highestOneBit(knightMoves);
 				knightMoves ^= nextSq;
-				int[] newPos = BitBoard.toCoords(nextSq);
 
-				if(board.getPieceIfOnBoard(newPos[0]-1, newPos[1]+pawnAttackDir) == (oppColor|Piece.PAWN)) {
+				if((nextSq & enemyPawnsLeft) != 0 || (nextSq & enemyPawnsRight) != 0) {
 					continue;
 				}
-				if(board.getPieceIfOnBoard(newPos[0]+1, newPos[1]+pawnAttackDir) == (oppColor|Piece.PAWN)) {
-					continue;
-				}
+				
 				targetCount++;
 			}
 			// A knight on the rim is dim - penalise it.
@@ -59,18 +68,19 @@ public class KnightScorer implements PositionScorer {
 			if(onRank >=3 && onRank <= 5) {
 				boolean isSupported = false;
 				boolean isAttackable = false;
-				if(board.getPieceIfOnBoard(position[0]-1, position[1]-pawnAttackDir) == (color|Piece.PAWN)
-						|| board.getPieceIfOnBoard(position[0]+1, position[1]-pawnAttackDir) == (color|Piece.PAWN)) {
+				if((nextKnight & myPawnsLeft) != 0 || (nextKnight & myPawnsRight) != 0) {
 					isSupported = true;
+					long scaryPawns = 0;
 					for(int r = onRank+pawnAttackDir; r > 0 && r < 7; r += pawnAttackDir) {
-						if(board.getPieceIfOnBoard(position[0]-1, r) == (oppColor|Piece.PAWN)) {
-							isAttackable = true;
-							break;
+						if(position[0] > 0) {
+							scaryPawns |= 1L<<(r<<3)<<(position[0]-1);
 						}
-						if(board.getPieceIfOnBoard(position[0]+1, r) == (oppColor|Piece.PAWN)) {
-							isAttackable = true;
-							break;
+						if(position[0] < 7) {
+							scaryPawns |= 1L<<(r<<3)<<(position[0]+1);
 						}
+					}
+					if((enemyPawns & scaryPawns) != 0) {
+						isAttackable = true;
 					}
 				}
 				if(isSupported && ! isAttackable) {
