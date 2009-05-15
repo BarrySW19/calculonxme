@@ -49,7 +49,7 @@ public class MoveGenerator implements Enumeration {
 	}
 
 	public void remove() {
-		throw new UnsupportedOperationException();
+		throw new RuntimeException("Unsupported Method");
 	}
 	
 	private void populateMoves() {
