@@ -1,5 +1,9 @@
 package nl.zoidberg.calculon.engine;
 
+import java.util.Enumeration;
+import java.util.Hashtable;
+import java.util.Vector;
+
 import nl.zoidberg.calculon.model.Piece;
 
 public class EngineUtils {
@@ -91,5 +95,18 @@ public class EngineUtils {
 	
 	public static byte getColor(byte piece) {
 		return (byte) (piece & Piece.MASK_COLOR);
+	}
+
+    public static void addAll(Vector to, Vector from) {
+        for(Enumeration e = from.elements(); e.hasMoreElements(); ) {
+                to.addElement(e.nextElement());
+        }
+    }
+        
+	public static void putAll(Hashtable to, Hashtable from) {
+        for(Enumeration e = from.keys(); e.hasMoreElements(); ) {
+                Object key = e.nextElement();
+                to.put(key, from.get(key));
+        }
 	}
 }

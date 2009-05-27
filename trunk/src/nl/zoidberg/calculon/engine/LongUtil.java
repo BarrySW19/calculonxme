@@ -87,4 +87,26 @@ public class LongUtil {
 		i = i + (i >>> 32);
 		return (int)i & 0x7f;
      }
+     
+	/**
+	* Returns the value obtained by rotating the two's complement binary
+	* representation of the specified {@code long} value left by the
+	* specified number of bits.  (Bits shifted out of the left hand, or
+	* high-order, side reenter on the right, or low-order.)
+	*
+	* <p>Note that left rotation with a negative distance is equivalent to
+	* right rotation: {@code rotateLeft(val, -distance) == rotateRight(val,
+	* distance)}.  Note also that rotation by any multiple of 64 is a
+	* no-op, so all but the last six bits of the rotation distance can be
+	* ignored, even if the distance is negative: {@code rotateLeft(val,
+	* distance) == rotateLeft(val, distance & 0x3F)}.
+	*
+	* @return the value obtained by rotating the two's complement binary
+	*     representation of the specified {@code long} value left by the
+	*     specified number of bits.
+	* @since 1.5
+	*/
+	public static long rotateLeft(long i, int distance) {
+		return (i << distance) | (i >>> -distance);
+	}
 }
