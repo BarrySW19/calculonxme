@@ -110,7 +110,9 @@ public class BoardCanvas extends Canvas {
 		for(int file = 0; file < 8; file++) {
 			for(int rank = 0; rank < 8; rank++) {
 				boolean isWhite = (file+rank)%2 == 1;
-				Image image = images[isWhite?0:1][currentBoard.getPiece(1L<<(rank<<3)<<file)];
+				long pos = 1L<<(rank<<3)<<file;
+				int color = (currentBoard.getBitmapBlack() & pos) == 0 ? Piece.WHITE : Piece.BLACK;
+				Image image = images[isWhite?0:1][color | currentBoard.getPiece(1L<<(rank<<3)<<file)];
 				g.drawImage(image, (flipped ? 7-file:file)*squareSize, (flipped ? rank : 7-rank)*squareSize, Graphics.TOP|Graphics.LEFT);
 			}
 		}
@@ -277,7 +279,7 @@ public class BoardCanvas extends Canvas {
 		
 		if(currentBoard.getPiece(1L<<(fireRank<<3)<<fireFile) == Piece.PAWN && (posRank == 0 || posRank == 7)) {
 			currentOverlay = new PromoteDialog(
-					this, (byte) (Piece.MASK_COLOR & currentBoard.getPiece(1L<<(fireRank<<3)<<fireFile)), move);
+					this, currentBoard.getPiece(1L<<(fireRank<<3)<<fireFile), move);
 			repaint();
 		} else {
 			applyMove(move, true);
