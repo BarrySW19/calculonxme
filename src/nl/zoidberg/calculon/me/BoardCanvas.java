@@ -9,6 +9,7 @@ import javax.microedition.lcdui.Canvas;
 import javax.microedition.lcdui.Graphics;
 import javax.microedition.lcdui.Image;
 
+import nl.zoidberg.calculon.engine.BitBoard;
 import nl.zoidberg.calculon.engine.Board;
 import nl.zoidberg.calculon.engine.ChessEngine;
 import nl.zoidberg.calculon.engine.MoveGenerator;
@@ -58,7 +59,7 @@ public class BoardCanvas extends Canvas {
 		}
 	}
 	
-	private Board currentBoard;
+	private BitBoard currentBoard;
 	private Hashtable currentMoves;
 	private boolean flipped = false;
 	private int posX = 0, posY = 0;
@@ -72,7 +73,7 @@ public class BoardCanvas extends Canvas {
 	}
 
 	public BoardCanvas() {
-		currentBoard = new Board().initialise();
+		currentBoard = new Board().initialise().getBitBoard();
 //		FENUtils.loadPosition("1rbq2r1/3pkpp1/2n1p2p/1N1n4/1p1P3N/3Q2P1/1PP2PBP/R3R1K1 w - - 1 16", currentBoard);
 //		FENUtils.loadPosition("7k/PP6/8/8/8/1r4R1/r5PP/7K w - - 1 1", currentBoard);
 		fireBoardChanged();
@@ -109,7 +110,7 @@ public class BoardCanvas extends Canvas {
 		for(int file = 0; file < 8; file++) {
 			for(int rank = 0; rank < 8; rank++) {
 				boolean isWhite = (file+rank)%2 == 1;
-				Image image = images[isWhite?0:1][currentBoard.getPiece(file, rank)];
+				Image image = images[isWhite?0:1][currentBoard.getPiece(1L<<(rank<<3)<<file)];
 				g.drawImage(image, (flipped ? 7-file:file)*squareSize, (flipped ? rank : 7-rank)*squareSize, Graphics.TOP|Graphics.LEFT);
 			}
 		}
@@ -274,9 +275,9 @@ public class BoardCanvas extends Canvas {
 		String fireSq = String.valueOf(FILES.charAt(fireFile)) + String.valueOf(RANKS.charAt(fireRank));
 		String move = fireSq + square;
 		
-		if((Piece.MASK_TYPE & currentBoard.getPiece(fireFile, fireRank)) == Piece.PAWN && (posRank == 0 || posRank == 7)) {
+		if(currentBoard.getPiece(1L<<(fireRank<<3)<<fireFile) == Piece.PAWN && (posRank == 0 || posRank == 7)) {
 			currentOverlay = new PromoteDialog(
-					this, (byte) (Piece.MASK_COLOR & currentBoard.getPiece(fireFile, fireRank)), move);
+					this, (byte) (Piece.MASK_COLOR & currentBoard.getPiece(1L<<(fireRank<<3)<<fireFile)), move);
 			repaint();
 		} else {
 			applyMove(move, true);
@@ -296,7 +297,7 @@ public class BoardCanvas extends Canvas {
 		}
 		
 		currentMoves.clear();
-		currentBoard.applyMove(move);
+		currentBoard.makeMove(currentBoard.getMove(move));
 		fireX = -1;
 		fireY = -1;
 		if( ! Game.RES_NO_RESULT.equals(currentBoard.getResult())) {
@@ -326,7 +327,7 @@ public class BoardCanvas extends Canvas {
 	public void reset() {
 		currentOverlay = null;
 		lastMove = null;
-		currentBoard.initialise();
+		currentBoard = new Board().initialise().getBitBoard();
 		fireBoardChanged();
 	}
 
