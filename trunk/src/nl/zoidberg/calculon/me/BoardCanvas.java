@@ -60,6 +60,7 @@ public class BoardCanvas extends Canvas {
 	}
 	
 	private BitBoard currentBoard;
+	private BitBoard paintBoard;
 	private Hashtable currentMoves;
 	private boolean flipped = false;
 	private int posX = 0, posY = 0;
@@ -67,6 +68,7 @@ public class BoardCanvas extends Canvas {
 	private DialogOverlay currentOverlay = null;
 	private int squareSize = 24;
 	private String lastMove = null;
+	private Thread moveThread;
 	
 	public static Image[][] getImages() {
 		return images;
@@ -77,6 +79,7 @@ public class BoardCanvas extends Canvas {
 //		FENUtils.loadPosition("1rbq2r1/3pkpp1/2n1p2p/1N1n4/1p1P3N/3Q2P1/1PP2PBP/R3R1K1 w - - 1 16", currentBoard);
 //		FENUtils.loadPosition("7k/PP6/8/8/8/1r4R1/r5PP/7K w - - 1 1", currentBoard);
 		fireBoardChanged();
+		paintBoard = currentBoard.clone();
 	}
 	
 	public int getSquareSize() {
@@ -111,8 +114,8 @@ public class BoardCanvas extends Canvas {
 			for(int rank = 0; rank < 8; rank++) {
 				boolean isWhite = (file+rank)%2 == 1;
 				long pos = 1L<<(rank<<3)<<file;
-				int color = (currentBoard.getBitmapBlack() & pos) == 0 ? Piece.WHITE : Piece.BLACK;
-				Image image = images[isWhite?0:1][color | currentBoard.getPiece(1L<<(rank<<3)<<file)];
+				int color = (paintBoard.getBitmapBlack() & pos) == 0 ? Piece.WHITE : Piece.BLACK;
+				Image image = images[isWhite?0:1][color | paintBoard.getPiece(1L<<(rank<<3)<<file)];
 				g.drawImage(image, (flipped ? 7-file:file)*squareSize, (flipped ? rank : 7-rank)*squareSize, Graphics.TOP|Graphics.LEFT);
 			}
 		}
@@ -133,7 +136,7 @@ public class BoardCanvas extends Canvas {
 		}
 		
 		if(fireX != -1) {
-			if(currentBoard.getPlayer() == Piece.WHITE) {
+			if(paintBoard.getPlayer() == Piece.WHITE) {
 				g.setColor(255, 255, 255);
 			} else {
 				g.setColor(0, 0, 0);
@@ -187,6 +190,8 @@ public class BoardCanvas extends Canvas {
 	}
 
 	protected void keyPressed(int keyCode) {
+		boolean isRunning = (moveThread != null && moveThread.isAlive());
+		
 		if(currentOverlay != null) {
 			currentOverlay.keyPressed(keyCode);
 			return;
@@ -200,16 +205,17 @@ public class BoardCanvas extends Canvas {
 			return;
 		}
 		
-		if(keyCode == '2') {
+		if( ! isRunning && keyCode == '2') {
 			if(Game.RES_NO_RESULT.equals(currentBoard.getResult())) {
 				currentMoves.clear();
-				new Thread(new MoveCommand()).start();
+				moveThread = new Thread(new MoveCommand());
+				moveThread.start();
 				repaint();
 			}
 			return;
 		}
 		
-		if(keyCode == '3') {
+		if(! isRunning && keyCode == '3') {
 			reset();
 			repaint();
 		}
@@ -308,10 +314,12 @@ public class BoardCanvas extends Canvas {
 			return;
 		}
 		if(respond) {
-			new Thread(new MoveCommand()).start();
+			moveThread = new Thread(new MoveCommand());
+			moveThread.start();
 		} else {
 			fireBoardChanged();
 		}
+		paintBoard = currentBoard.clone();
 		repaint();
 	}
 
