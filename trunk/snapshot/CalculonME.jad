@@ -1,8 +1,8 @@
 MIDlet-1: CalculonME,/icon.gif,nl.zoidberg.calculon.me.CalculonME
-MIDlet-Jar-Size: 87205
+MIDlet-Jar-Size: 117179
 MIDlet-Jar-URL: CalculonME.jar
 MIDlet-Name: CalculonME MIDlet Suite
 MIDlet-Vendor: MIDlet Suite Vendor
-MIDlet-Version: 1.0.2
+MIDlet-Version: 0.4.1
 MicroEdition-Configuration: CLDC-1.0
 MicroEdition-Profile: MIDP-2.0
