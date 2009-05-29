@@ -526,11 +526,20 @@ public class BitBoard {
 	 * @return
 	 */
 	public BitBoardMove getMove(String move) {
-		if(move.equals("O-O-O")) {
-			return BitBoard.generateCastling(player == Piece.WHITE ? Board.CASTLE_WQS : Board.CASTLE_BQS);
+		if((move.equals("E1G1") && getPiece(1L<<4) == Piece.KING)
+				|| (move.equals("E8G8") && getPiece(1L<<60) == Piece.KING)) {
+			move = "O-O";
 		}
+		if((move.equals("E1C1") && getPiece(1L<<4) == Piece.KING)
+				|| (move.equals("E8C8") && getPiece(1L<<60) == Piece.KING)) {
+			move = "O-O-O";
+		}
+		
 		if(move.equals("O-O")) {
 			return BitBoard.generateCastling(player == Piece.WHITE ? Board.CASTLE_WKS : Board.CASTLE_BKS);
+		}
+		if(move.equals("O-O-O")) {
+			return BitBoard.generateCastling(player == Piece.WHITE ? Board.CASTLE_WQS : Board.CASTLE_BQS);
 		}
 		
 		long from = coordToPosition(move.substring(0, 2));
