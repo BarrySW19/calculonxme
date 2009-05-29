@@ -294,14 +294,15 @@ public class BoardCanvas extends Canvas {
 	
 	private void applyMove(String move, boolean respond) {
 		lastMove = move;
-		if(lastMove.length() > 4) {
-			lastMove = lastMove.substring(0, 4);
-		}
+
 		if("O-O".equals(lastMove)) {
 			lastMove = currentBoard.getPlayer() == Piece.WHITE ? "E1G1" : "E8G8";
 		}
 		if("O-O-O".equals(lastMove)) {
 			lastMove = currentBoard.getPlayer() == Piece.BLACK ? "E1D1" : "E8D8";
+		}
+		if(lastMove.length() > 4) {
+			lastMove = lastMove.substring(0, 4);
 		}
 		
 		currentMoves.clear();
@@ -313,13 +314,14 @@ public class BoardCanvas extends Canvas {
 			repaint();
 			return;
 		}
+		paintBoard = currentBoard.clone();
+
 		if(respond) {
 			moveThread = new Thread(new MoveCommand());
 			moveThread.start();
 		} else {
 			fireBoardChanged();
 		}
-		paintBoard = currentBoard.clone();
 		repaint();
 	}
 
@@ -338,6 +340,7 @@ public class BoardCanvas extends Canvas {
 		currentOverlay = null;
 		lastMove = null;
 		currentBoard = new Board().initialise().getBitBoard();
+		paintBoard = currentBoard.clone();
 		fireBoardChanged();
 	}
 
