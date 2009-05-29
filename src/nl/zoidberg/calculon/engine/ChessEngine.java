@@ -7,7 +7,7 @@ import nl.zoidberg.calculon.analyzer.GameScorer;
 import nl.zoidberg.calculon.engine.BitBoard.BitBoardMove;
 
 public class ChessEngine {
-	private static final int DEPTH = 1;
+	private static final int DEPTH = 3;
 	
 //	private static final Logger log = Logger.getLogger(ChessEngine.class.getName());
 	
