@@ -69,6 +69,7 @@ public class PawnCaptureGenerator extends PieceMoveGenerator {
 		} else {
 			bitBoard.makeMove(bbMove);
 			if( ! CheckDetector.isPlayerJustMovedInCheck(bitBoard, ! alreadyInCheck)) {
+				bitBoard.unmakeMove();
 				if((captured & BitBoard.FINAL_RANKS) == 0) {
 					rv.addElement(bbMove);
 				} else {
@@ -81,8 +82,9 @@ public class PawnCaptureGenerator extends PieceMoveGenerator {
 					rv.addElement(BitBoard.generateCaptureAndPromote(
 							nextPiece, captured, player, bitBoard.getPiece(captured), Piece.KNIGHT));
 				}
+			} else {
+				bitBoard.unmakeMove();
 			}
-			bitBoard.unmakeMove();
 		}
 	}
 
